@@ -247,7 +247,7 @@ pub trait Node<S: Schema<Node = Self> + 'static>:
     fn content_match_at(&self, index: usize) -> Result<S::ContentMatch, ContentMatchError> {
         self.r#type()
             .content_match()
-            .match_fragment_range(&self.content().unwrap_or(Fragment::EMPTY_REF), 0..index)
+            .match_fragment_range(self.content().unwrap_or(Fragment::EMPTY_REF), 0..index)
             .ok_or(ContentMatchError::InvalidContent)
     }
 
@@ -269,9 +269,9 @@ pub trait Node<S: Schema<Node = Self> + 'static>:
 
         let one = self
             .content_match_at(from)?
-            .match_fragment_range(&replacement, start..end);
+            .match_fragment_range(replacement, start..end);
         let two = one.and_then(|o| {
-            o.match_fragment_range(&self.content().unwrap_or(Fragment::EMPTY_REF), to..)
+            o.match_fragment_range(self.content().unwrap_or(Fragment::EMPTY_REF), to..)
         });
 
         if matches!(two, Some(m) if m.valid_end()) {
