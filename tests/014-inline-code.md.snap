@@ -1,0 +1,35 @@
+```
+This is `inline code` this is not
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "inline code"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " this is not"
+        }
+      ]
+    }
+  ]
+}
+

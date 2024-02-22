@@ -1,0 +1,48 @@
+```
+> Test
+> Multi
+> Line
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "blockquote",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Test"
+            },
+            {
+              "type": "text",
+              "marks": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Multi"
+            },
+            {
+              "type": "text",
+              "marks": [],
+              "text": "\n"
+            },
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Line"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

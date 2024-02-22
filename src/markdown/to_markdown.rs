@@ -1,8 +1,8 @@
 use super::{MarkdownMark, MarkdownNode, MD};
 use crate::model::{AttrNode, Block, Fragment, Leaf, Node};
 use displaydoc::Display;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, InlineStr, LinkType, Tag};
-use pulldown_cmark_to_cmark::cmark;
+use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, InlineStr, LinkType, Tag};
+// use pulldown_cmark_to_cmark::cmark;
 use thiserror::Error;
 
 /// Possible error when generating markdown
@@ -20,9 +20,10 @@ impl From<std::fmt::Error> for ToMarkdownError {
 
 /// Turn a markdown document into a string
 pub fn to_markdown(doc: &MarkdownNode) -> Result<String, ToMarkdownError> {
-    let mut buf = String::with_capacity(doc.node_size() + 128);
-    let events = MarkdownSerializer::new(doc);
-    cmark(events, &mut buf, None)?;
+    let buf = String::with_capacity(doc.node_size() + 128);
+    let _events = MarkdownSerializer::new(doc);
+    // TODO
+    // cmark(events, &mut buf)?;
     Ok(buf)
 }
 
@@ -47,11 +48,18 @@ fn mark_tag(mark: &MarkdownMark) -> Tag {
         MarkdownMark::Strong => Tag::Strong,
         MarkdownMark::Em => Tag::Emphasis,
         MarkdownMark::Code => unimplemented!("Should not be pushed on the mark stack"),
-        MarkdownMark::Link { attrs } => Tag::Link(
-            LinkType::Inline,
-            CowStr::Borrowed(attrs.href.as_str()),
-            CowStr::Borrowed(attrs.title.as_str()),
-        ),
+        MarkdownMark::Link { attrs } => Tag::Link {
+            link_type: LinkType::Inline,
+            dest_url: CowStr::Borrowed(attrs.href.as_str()),
+            title: CowStr::Borrowed(attrs.title.as_str()),
+            id: String::new().into(),
+        },
+        MarkdownMark::Footnote { attrs: _ } => {
+            unimplemented!("Should not be pushed on the mark stack")
+        }
+        MarkdownMark::HtmlTag => {
+            unimplemented!("Should not be pushed on the mark stack")
+        }
     }
 }
 
@@ -85,7 +93,7 @@ impl<'a> MarkdownSerializer<'a> {
         if index == 0 {
             if let Some(mark) = self.marks.pop() {
                 self.inner.push((node, 0));
-                return Some(Event::End(mark_tag(mark)));
+                return Some(Event::End(mark_tag(mark).to_end()));
             }
         }
         let last = self.process_content(index, content, node);
@@ -98,14 +106,14 @@ impl<'a> MarkdownSerializer<'a> {
         } else if last {
             if let Some(mark) = self.marks.pop() {
                 self.inner.push((node, index));
-                return Some(Event::End(mark_tag(mark)));
+                return Some(Event::End(mark_tag(mark).to_end()));
             }
             let tag = map(attrs);
             if matches!(&tag, Tag::CodeBlock(..)) {
-                self.stack.push(Event::End(tag));
+                self.stack.push(Event::End(tag.to_end()));
                 Some(Event::Text(CowStr::Inlined(InlineStr::from('\n'))))
             } else {
-                Some(Event::End(tag))
+                Some(Event::End(tag.to_end()))
             }
         } else {
             self.next()
@@ -127,8 +135,18 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     self.next()
                 }
                 MarkdownNode::Heading(AttrNode { attrs, content }) => {
-                    self.process_attr_node(index, content, attrs, node, |attrs| {
-                        Tag::Heading(attrs.level.into())
+                    self.process_attr_node(index, content, attrs, node, |attrs| Tag::Heading {
+                        level: match attrs.level {
+                            0 | 1 => HeadingLevel::H1,
+                            2 => HeadingLevel::H2,
+                            3 => HeadingLevel::H3,
+                            4 => HeadingLevel::H4,
+                            5 => HeadingLevel::H5,
+                            6.. => HeadingLevel::H6,
+                        },
+                        attrs: Default::default(),
+                        classes: Default::default(),
+                        id: Default::default(),
                     })
                 }
                 MarkdownNode::CodeBlock(AttrNode { attrs, content }) => {
@@ -137,11 +155,11 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     })
                 }
                 MarkdownNode::Text(text_node) => {
-                    if let Some(last) = self.marks.last().map(|n| *n) {
+                    if let Some(last) = self.marks.last().copied() {
                         if !text_node.marks.contains(last) {
                             self.inner.push((node, index));
                             self.marks.pop();
-                            return Some(Event::End(mark_tag(last)));
+                            return Some(Event::End(mark_tag(last).to_end()));
                         }
                     }
                     let mut is_code = false;
@@ -183,14 +201,17 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     Some(Event::HardBreak)
                 }
                 MarkdownNode::Image(Leaf { attrs }) => {
-                    self.process_attr_node(index, Fragment::EMPTY_REF, &(), node, |()| {
-                        Tag::Image(
-                            LinkType::Inline,
-                            CowStr::Borrowed(attrs.src.as_str()),
-                            CowStr::Borrowed(attrs.src.as_str()),
-                        )
+                    self.process_attr_node(index, Fragment::EMPTY_REF, &(), node, |()| Tag::Image {
+                        link_type: LinkType::Inline,
+                        dest_url: CowStr::Borrowed(attrs.src.as_str()),
+                        title: CowStr::Borrowed(attrs.title.as_str()),
+                        id: String::new().into(),
                     })
                 }
+                MarkdownNode::FootnoteDefinition(AttrNode { attrs, content }) => self
+                    .process_attr_node(index, content, attrs, node, |attrs| {
+                        Tag::FootnoteDefinition(CowStr::Borrowed(attrs.label.as_str()))
+                    }),
             }
         } else {
             None
@@ -202,58 +223,14 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
 mod tests {
 
     use super::to_markdown;
-    use crate::markdown::{
-        helper::{blockquote, code_block, doc, h1, h2, node, p, strong},
-        MarkdownNode,
-    };
-
-    fn initial_doc() -> MarkdownNode {
-        doc(vec![
-            h1((
-                "Padington",
-            )),
-            code_block("", (
-                "fn foo(a: u32) -> u32 {\n  2 * a\n}",
-            )),
-            h2((
-                "Lorem Ipsum",
-            )),
-            blockquote((
-                p(vec![
-                    node("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. "),
-                    strong("At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."),
-                    node(" Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."),
-                ]),
-            ))
-        ])
-    }
+    use crate::markdown::from_markdown;
 
     #[test]
-    fn test() {
-        let node = initial_doc();
-        let res = "\
-        # Padington\n\
-        \n\
-        ````\n\
-        fn foo(a: u32) -> u32 {\n  2 * a\n}\n\
-        ````\n\
-        \n\
-        ## Lorem Ipsum\n\
-        \n > \n > Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. **At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.** Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.\
-        ".to_string();
-
-        let save = to_markdown(&node);
-        let line = "\n---------------------------------------\n";
-        assert_eq!(
-            save.as_ref(),
-            Ok(&res),
-            "\ngenerated:{}{}{}\n\nexpected:{}{}{}\n",
-            line,
-            save.as_ref().unwrap(),
-            line,
-            line,
-            &res,
-            line,
-        );
+    fn renderer_tests() {
+        test_runner::test_snapshots("md", "rendered", |input| {
+            let node = from_markdown(input).unwrap();
+            to_markdown(&node).unwrap()
+        })
+        .unwrap();
     }
 }

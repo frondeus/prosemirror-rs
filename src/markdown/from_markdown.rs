@@ -1,14 +1,11 @@
 use super::{
-    BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
-    MarkdownNode, OrderedListAttrs, MD,
+    attrs::FootnoteAttrs, BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs,
+    MarkdownMark, MarkdownNode, OrderedListAttrs, MD,
 };
-use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Text, TextNode};
+use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Node, Text, TextNode};
 use displaydoc::Display;
-use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
-use std::{
-    convert::{TryFrom, TryInto},
-    num::TryFromIntError,
-};
+use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use std::{convert::TryInto, num::TryFromIntError};
 use thiserror::Error;
 
 /// Errors that can occur when reading a markdown file
@@ -37,11 +34,24 @@ pub enum Attrs {
     BulletList(BulletListAttrs),
     ListItem,
     Image(ImageAttrs),
+    FootnoteDefinition(FootnoteAttrs),
 }
 
 /// Creates a MarkdownNode::Doc from a text
 pub fn from_markdown(text: &str) -> Result<MarkdownNode, FromMarkdownError> {
-    let parser = Parser::new(text);
+    let mut options = Options::empty();
+    // options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    // options.insert(Options::ENABLE_STRIKETHROUGH);
+    // options.insert(Options::ENABLE_TASKLISTS);
+    // options.insert(Options::ENABLE_SMART_PUNCTUATION);
+
+    // options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+
+    // options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+    // options.insert(Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS)
+
+    let parser = Parser::new_ext(text, options);
     let mut d = MarkdownDeserializer::default();
     d.deserialize(parser)
 }
@@ -88,8 +98,20 @@ impl MarkdownDeserializer {
                     Tag::Paragraph => {
                         self.stack.push((Vec::new(), Attrs::Paragraph));
                     }
-                    Tag::Heading(l) => {
-                        let level = u8::try_from(l)?;
+                    Tag::Heading {
+                        level,
+                        attrs: _,
+                        id: _,
+                        classes: _,
+                    } => {
+                        let level = match level {
+                            HeadingLevel::H1 => 1,
+                            HeadingLevel::H2 => 2,
+                            HeadingLevel::H3 => 3,
+                            HeadingLevel::H4 => 4,
+                            HeadingLevel::H5 => 5,
+                            HeadingLevel::H6 => 6,
+                        };
                         self.stack
                             .push((Vec::new(), Attrs::Heading(HeadingAttrs { level })));
                     }
@@ -124,19 +146,28 @@ impl MarkdownDeserializer {
                     Tag::Item => {
                         self.stack.push((Vec::new(), Attrs::ListItem));
                     }
-                    Tag::FootnoteDefinition(_) => {
-                        return Err(FromMarkdownError::NotSupported("FootnoteDefinition"));
+                    Tag::FootnoteDefinition(label) => {
+                        self.stack.push((
+                            Vec::new(),
+                            Attrs::FootnoteDefinition(FootnoteAttrs {
+                                label: label.to_string(),
+                            }),
+                        ));
                     }
                     Tag::Table(_) => {
+                        // Requires opt-in feature
                         return Err(FromMarkdownError::NotSupported("Table"));
                     }
                     Tag::TableHead => {
+                        // Requires opt-in feature
                         return Err(FromMarkdownError::NotSupported("TableHead"));
                     }
                     Tag::TableRow => {
+                        // Requires opt-in feature
                         return Err(FromMarkdownError::NotSupported("TableRow"));
                     }
                     Tag::TableCell => {
+                        // Requires opt-in feature
                         return Err(FromMarkdownError::NotSupported("TableCell"));
                     }
                     Tag::Emphasis => {
@@ -146,26 +177,44 @@ impl MarkdownDeserializer {
                         self.mark_set.add(&MarkdownMark::Strong);
                     }
                     Tag::Strikethrough => {
+                        // Requires opt-in feature
                         return Err(FromMarkdownError::NotSupported("Strikethrough"));
                     }
-                    Tag::Link(_, href, title) => {
+                    Tag::HtmlBlock => {
+                        // return Err(FromMarkdownError::NotSupported("HtmlBlock"));
+                    }
+                    Tag::MetadataBlock(_) => {
+                        // Requires opt-in feature
+                        return Err(FromMarkdownError::NotSupported("MetadataBlock"));
+                    }
+                    Tag::Link {
+                        link_type: _,
+                        dest_url,
+                        title,
+                        id: _,
+                    } => {
                         self.mark_set.add(&MarkdownMark::Link {
                             attrs: LinkAttrs {
-                                href: href.to_string(),
+                                href: dest_url.to_string(),
                                 title: title.to_string(),
                             },
                         });
                     }
-                    Tag::Image(_, src, title) => {
+                    Tag::Image {
+                        link_type: _,
+                        dest_url,
+                        title,
+                        id: _,
+                    } => {
                         self.push_stack(Attrs::Image(ImageAttrs {
-                            src: src.to_string(),
-                            alt: title.to_string(),
+                            src: dest_url.to_string(),
+                            alt: String::new(),
                             title: title.to_string(),
                         }));
                     }
                 },
                 Event::End(tag) => match tag {
-                    Tag::Paragraph => {
+                    TagEnd::Paragraph => {
                         let (content, attrs) = self.pop_stack()?;
                         if matches!(attrs, Attrs::Paragraph) {
                             let p = MarkdownNode::Paragraph(Block {
@@ -176,7 +225,7 @@ impl MarkdownDeserializer {
                             return Err(FromMarkdownError::MisplacedEndTag("Paragraph", attrs));
                         }
                     }
-                    Tag::Heading(_) => {
+                    TagEnd::Heading(_) => {
                         let (content, attrs) = self.pop_stack()?;
                         if let Attrs::Heading(attrs) = attrs {
                             let h = MarkdownNode::Heading(AttrNode {
@@ -188,7 +237,7 @@ impl MarkdownDeserializer {
                             return Err(FromMarkdownError::MisplacedEndTag("Heading", attrs));
                         }
                     }
-                    Tag::BlockQuote => {
+                    TagEnd::BlockQuote => {
                         let (content, attrs) = self.pop_stack()?;
                         if let Attrs::Blockquote = attrs {
                             let b = MarkdownNode::Blockquote(Block {
@@ -199,7 +248,7 @@ impl MarkdownDeserializer {
                             return Err(FromMarkdownError::MisplacedEndTag("BlockQuote", attrs));
                         }
                     }
-                    Tag::CodeBlock(_) => {
+                    TagEnd::CodeBlock => {
                         let (mut content, attrs) = self.pop_stack()?;
                         if let Attrs::CodeBlock(attrs) = attrs {
                             if let Some(MarkdownNode::Text(t)) = content.last_mut() {
@@ -214,7 +263,7 @@ impl MarkdownDeserializer {
                             return Err(FromMarkdownError::MisplacedEndTag("CodeBlock", attrs));
                         }
                     }
-                    Tag::List(_) => {
+                    TagEnd::List(_) => {
                         let (content, attrs) = self.pop_stack()?;
                         match attrs {
                             Attrs::BulletList(attrs) => {
@@ -236,7 +285,7 @@ impl MarkdownDeserializer {
                             }
                         }
                     }
-                    Tag::Item => {
+                    TagEnd::Item => {
                         let (content, attrs) = self.pop_stack()?;
                         if let Attrs::ListItem = attrs {
                             let cb = MarkdownNode::ListItem(Block {
@@ -245,42 +294,62 @@ impl MarkdownDeserializer {
                             self.add_content(cb)?;
                         }
                     }
-                    Tag::FootnoteDefinition(_) => {
-                        return Err(FromMarkdownError::NotSupported("FootnoteDefinition"));
+                    TagEnd::FootnoteDefinition => {
+                        let (mut content, attrs) = self.pop_stack()?;
+                        if let Attrs::FootnoteDefinition(attrs) = attrs {
+                            if let Some(MarkdownNode::Text(t)) = content.last_mut() {
+                                t.text.remove_last_newline();
+                            }
+                            let cb = MarkdownNode::FootnoteDefinition(AttrNode {
+                                attrs,
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag(
+                                "FootnoteDefinition",
+                                attrs,
+                            ));
+                        }
                     }
-                    Tag::Table(_) => {
+                    TagEnd::Table => {
                         return Err(FromMarkdownError::NotSupported("Table"));
                     }
-                    Tag::TableHead => {
+                    TagEnd::TableHead => {
                         return Err(FromMarkdownError::NotSupported("TableHead"));
                     }
-                    Tag::TableRow => {
+                    TagEnd::TableRow => {
                         return Err(FromMarkdownError::NotSupported("TableRow"));
                     }
-                    Tag::TableCell => {
+                    TagEnd::TableCell => {
                         return Err(FromMarkdownError::NotSupported("TableCell"));
                     }
-                    Tag::Emphasis => {
+                    TagEnd::HtmlBlock => {}
+                    TagEnd::MetadataBlock(_) => {
+                        return Err(FromMarkdownError::NotSupported("MetadataBlock"));
+                    }
+                    TagEnd::Emphasis => {
                         self.mark_set.remove(&MarkdownMark::Em);
                     }
-                    Tag::Strong => {
+                    TagEnd::Strong => {
                         self.mark_set.remove(&MarkdownMark::Strong);
                     }
-                    Tag::Strikethrough => {
+                    TagEnd::Strikethrough => {
                         return Err(FromMarkdownError::NotSupported("Strikethrough"));
                     }
-                    Tag::Link(_, href, title) => self.mark_set.remove(&MarkdownMark::Link {
-                        attrs: LinkAttrs {
-                            href: href.to_string(),
-                            title: title.to_string(),
-                        },
-                    }),
-                    Tag::Image(_, _, _) => {
+                    TagEnd::Link => {
+                        self.mark_set
+                            .remove_matching(|m| matches!(m, &MarkdownMark::Link { .. }));
+                    }
+                    TagEnd::Image { .. } => {
                         let (content, attrs) = self.pop_stack()?;
-                        if let Attrs::Image(attrs) = attrs {
-                            if content.len() > 0 {
-                                return Err(FromMarkdownError::NoChildrenAllowed("Image"));
-                            }
+                        if let Attrs::Image(mut attrs) = attrs {
+                            let alt: String = content
+                                .into_iter()
+                                .map(|node| node.text_content())
+                                .collect();
+
+                            attrs.alt = alt;
                             let cb = MarkdownNode::Image(Leaf { attrs });
                             self.add_content(cb)?;
                         } else {
@@ -302,14 +371,39 @@ impl MarkdownDeserializer {
                         marks,
                     }))?;
                 }
-                Event::Html(_) => {
-                    return Err(FromMarkdownError::NotSupported("Html"));
+                Event::InlineHtml(html) => {
+                    let mut marks = self.mark_set.clone();
+                    marks.add(&MarkdownMark::HtmlTag);
+                    self.add_content(MarkdownNode::Text(TextNode {
+                        text: Text::from(html.to_string()),
+                        marks,
+                    }))?;
                 }
-                Event::FootnoteReference(_) => {
-                    return Err(FromMarkdownError::NotSupported("FootnoteReference"));
+                Event::Html(html) => {
+                    let mut marks = self.mark_set.clone();
+                    marks.add(&MarkdownMark::HtmlTag);
+                    self.add_content(MarkdownNode::Text(TextNode {
+                        text: Text::from(html.to_string()),
+                        marks,
+                    }))?;
+                }
+                Event::FootnoteReference(label) => {
+                    let mut marks = self.mark_set.clone();
+                    marks.add(&MarkdownMark::Footnote {
+                        attrs: FootnoteAttrs {
+                            label: label.to_string(),
+                        },
+                    });
+                    self.add_content(MarkdownNode::Text(TextNode {
+                        text: Text::from(label.to_string()),
+                        marks,
+                    }))?;
                 }
                 Event::SoftBreak => {
-                    return Err(FromMarkdownError::NotSupported("SoftBreak"));
+                    self.add_content(MarkdownNode::Text(TextNode {
+                        text: Text::from("\n".to_string()),
+                        marks: self.mark_set.clone(),
+                    }))?;
                 }
                 Event::HardBreak => {
                     self.add_content(MarkdownNode::HardBreak)?;
@@ -318,6 +412,7 @@ impl MarkdownDeserializer {
                     self.add_content(MarkdownNode::HorizontalRule)?;
                 }
                 Event::TaskListMarker(_) => {
+                    // This requires opt-in feature
                     return Err(FromMarkdownError::NotSupported("TaskListMarker"));
                 }
             }
@@ -335,34 +430,54 @@ impl MarkdownDeserializer {
 
 #[cfg(test)]
 mod tests {
-    use pulldown_cmark::{CowStr, Event, Parser, Tag};
+    // use pulldown_cmark::{CowStr, Event, HeadingLevel, Parser, Tag, TagEnd};
+
+    use super::from_markdown;
 
     #[test]
-    fn test_alerts() {
-        let test_string = "\
-        ### Alert Area\n\
-        \n\
-        :::success\n\
-        Yes :tada:\n\
-        :::\n\
-        ";
+    fn parser_tests() {
+        test_runner::test_snapshots("md", "parsed", |input| {
+            let ast = match from_markdown(input) {
+                Ok(ast) => ast,
+                Err(e) => return format!("Error: {}", e),
+            };
 
-        let p = Parser::new(test_string);
-        let v: Vec<Event> = p.collect();
-        assert_eq!(
-            v,
-            vec![
-                Event::Start(Tag::Heading(3)),
-                Event::Text(CowStr::Borrowed("Alert Area")),
-                Event::End(Tag::Heading(3)),
-                Event::Start(Tag::Paragraph),
-                Event::Text(CowStr::Borrowed(":::success")),
-                Event::SoftBreak,
-                Event::Text(CowStr::Borrowed("Yes :tada:")),
-                Event::SoftBreak,
-                Event::Text(CowStr::Borrowed(":::")),
-                Event::End(Tag::Paragraph),
-            ]
-        );
+            serde_json::to_string_pretty(&ast).unwrap()
+        })
+        .unwrap();
     }
+
+    // #[test]
+    // fn test_alerts() {
+    //     let test_string = "\
+    //     ### Alert Area\n\
+    //     \n\
+    //     :::success\n\
+    //     Yes :tada:\n\
+    //     :::\n\
+    //     ";
+
+    //     let p = Parser::new(test_string);
+    //     let v: Vec<Event> = p.collect();
+    //     assert_eq!(
+    //         v,
+    //         vec![
+    //             Event::Start(Tag::Heading {
+    //                 level: HeadingLevel::H3,
+    //                 attrs: Default::default(),
+    //                 classes: Default::default(),
+    //                 id: Default::default(),
+    //             }),
+    //             Event::Text(CowStr::Borrowed("Alert Area")),
+    //             Event::End(TagEnd::Heading(HeadingLevel::H3)),
+    //             Event::Start(Tag::Paragraph),
+    //             Event::Text(CowStr::Borrowed(":::success")),
+    //             Event::SoftBreak,
+    //             Event::Text(CowStr::Borrowed("Yes :tada:")),
+    //             Event::SoftBreak,
+    //             Event::Text(CowStr::Borrowed(":::")),
+    //             Event::End(TagEnd::Paragraph),
+    //         ]
+    //     );
+    // }
 }

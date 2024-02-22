@@ -1,0 +1,61 @@
+````
+```
+This is a code
+Multiline one
+```
+
+```jsonnet
+This is a code with language specified
+```
+
+```jsonnet { x: 2 }
+This is a code with spaces in language
+```
+````
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "code_block",
+      "attrs": {
+        "params": ""
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is a code\nMultiline one"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "attrs": {
+        "params": "jsonnet"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is a code with language specified"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "attrs": {
+        "params": "jsonnet { x: 2 }"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is a code with spaces in language"
+        }
+      ]
+    }
+  ]
+}
+

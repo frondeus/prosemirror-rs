@@ -31,6 +31,8 @@
         ];
         # During runtime
         buildInputs = with pkgs; [
+          openssl
+          colordiff
         ];
       in
       with pkgs;

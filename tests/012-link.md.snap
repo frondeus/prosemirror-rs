@@ -1,0 +1,100 @@
+```
+This is [a link](./to_a_content.md) here it ends
+
+This is <http:://google.com> autolink here
+
+This is <john@example.com> email here
+
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "./to_a_content.md",
+                "title": ""
+              }
+            }
+          ],
+          "text": "a link"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " here it ends"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "http:://google.com",
+                "title": ""
+              }
+            }
+          ],
+          "text": "http:://google.com"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " autolink here"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "john@example.com",
+                "title": ""
+              }
+            }
+          ],
+          "text": "john@example.com"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " email here"
+        }
+      ]
+    }
+  ]
+}
+

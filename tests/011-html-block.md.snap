@@ -1,0 +1,43 @@
+```
+<foo>
+
+Bar
+
+</foo>
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "text",
+      "marks": [
+        {
+          "type": "htmlTag"
+        }
+      ],
+      "text": "<foo>\n"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "Bar"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "marks": [
+        {
+          "type": "htmlTag"
+        }
+      ],
+      "text": "</foo>"
+    }
+  ]
+}
+

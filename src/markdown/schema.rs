@@ -40,6 +40,8 @@ pub enum MarkdownNodeType {
     HardBreak,
     /// An image `<img>`
     Image,
+    /// Footnote definition
+    FootnoteDefinition,
 }
 
 impl MarkdownNodeType {
@@ -54,6 +56,7 @@ impl MarkdownNodeType {
             Self::CodeBlock => false, // marks = ""
 
             Self::Heading | Self::Paragraph => true, // textblock
+            Self::FootnoteDefinition => true,
 
             Self::Text | Self::HorizontalRule | Self::HardBreak | Self::Image => true, // inline
         }
@@ -100,6 +103,7 @@ impl NodeType<MD> for MarkdownNodeType {
             Self::HorizontalRule => MarkdownContentMatch::Empty,
             Self::HardBreak => MarkdownContentMatch::Empty,
             Self::Image => MarkdownContentMatch::Empty,
+            Self::FootnoteDefinition => MarkdownContentMatch::InlineStar,
         }
     }
 

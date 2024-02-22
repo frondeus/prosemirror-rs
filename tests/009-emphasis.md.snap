@@ -1,0 +1,30 @@
+```
+Let this is _emphasis text_
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "Let this is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "em"
+            }
+          ],
+          "text": "emphasis text"
+        }
+      ]
+    }
+  ]
+}
+

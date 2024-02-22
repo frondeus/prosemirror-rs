@@ -1,0 +1,38 @@
+```
+horizontal
+
+---
+
+rule
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "horizontal"
+        }
+      ]
+    },
+    {
+      "type": "horizontal_rule"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "rule"
+        }
+      ]
+    }
+  ]
+}
+

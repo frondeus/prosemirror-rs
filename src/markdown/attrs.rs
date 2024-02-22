@@ -53,3 +53,10 @@ pub struct LinkAttrs {
     #[serde(default, deserialize_with = "de::deserialize_or_default")]
     pub title: String,
 }
+
+/// The attributes for a footnote
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+pub struct FootnoteAttrs {
+    /// The label of the footnote
+    pub label: String,
+}

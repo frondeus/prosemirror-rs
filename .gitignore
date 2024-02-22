@@ -2,3 +2,5 @@
 Cargo.lock
 .envrc
 .direnv
+*.new
+.vscode

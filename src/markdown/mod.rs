@@ -29,6 +29,8 @@ pub use to_markdown::{to_markdown, ToMarkdownError};
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
+use self::attrs::FootnoteAttrs;
+
 /// The node type for the markdown schema
 #[derive(Debug, Derivative, Deserialize, Serialize, PartialEq, Eq)]
 #[derivative(Clone(bound = ""))]
@@ -58,6 +60,8 @@ pub enum MarkdownNode {
     HardBreak,
     /// An image `<img>`
     Image(Leaf<ImageAttrs>),
+    /// A footnote definition `[^1]: ...`
+    FootnoteDefinition(AttrNode<MD, FootnoteAttrs>),
 }
 
 impl From<TextNode<MD>> for MarkdownNode {
@@ -93,6 +97,7 @@ impl Node<MD> for MarkdownNode {
             Self::Text { .. } => false,
             Self::Image { .. } => false,
             Self::HardBreak => false,
+            Self::FootnoteDefinition(_) => true,
         }
     }
 
@@ -110,6 +115,7 @@ impl Node<MD> for MarkdownNode {
             Self::Text { .. } => MarkdownNodeType::Text,
             Self::Image { .. } => MarkdownNodeType::Image,
             Self::HardBreak => MarkdownNodeType::HardBreak,
+            Self::FootnoteDefinition(_) => MarkdownNodeType::FootnoteDefinition,
         }
     }
 
@@ -134,6 +140,7 @@ impl Node<MD> for MarkdownNode {
             Self::HorizontalRule => None,
             Self::HardBreak => None,
             Self::Image { .. } => None,
+            Self::FootnoteDefinition(AttrNode { content, .. }) => Some(content),
         }
     }
 
@@ -170,6 +177,7 @@ impl Node<MD> for MarkdownNode {
             Self::HorizontalRule => Self::HorizontalRule,
             Self::HardBreak => Self::HardBreak,
             Self::Image(img) => Self::Image(img.clone()),
+            Self::FootnoteDefinition(node) => Self::FootnoteDefinition(node.copy(map)),
         }
     }
 }
@@ -195,6 +203,13 @@ pub enum MarkdownMark {
         /// The attributes
         attrs: LinkAttrs,
     },
+    /// [^1] style footnotes
+    Footnote {
+        /// The attributes
+        attrs: FootnoteAttrs,
+    },
+    /// <foo>, </foo> or <foo /> tags
+    HtmlTag,
 }
 
 impl Mark<MD> for MarkdownMark {
@@ -204,6 +219,8 @@ impl Mark<MD> for MarkdownMark {
             Self::Em => MarkdownMarkType::Em,
             Self::Code => MarkdownMarkType::Code,
             Self::Link { .. } => MarkdownMarkType::Link,
+            Self::Footnote { .. } => MarkdownMarkType::Footnote,
+            Self::HtmlTag { .. } => MarkdownMarkType::HtmlTag,
         }
     }
 }
@@ -219,6 +236,10 @@ pub enum MarkdownMarkType {
     Code,
     /// hyper-linked
     Link,
+    /// [^1] style footnotes
+    Footnote,
+    /// <foo>, </foo> or <foo /> tags
+    HtmlTag,
 }
 
 impl MarkType for MarkdownMarkType {}

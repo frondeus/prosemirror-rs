@@ -1,0 +1,34 @@
+```
+This is ![img](./photo.png "With a title") and this is not
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "image",
+          "attrs": {
+            "src": "./photo.png",
+            "alt": "img",
+            "title": "With a title"
+          }
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " and this is not"
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,71 @@
+```
+* This is a bullet
+* Another bullet
+
+- This is another style of bullet
+- Another bullet 2
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "bullet_list",
+      "attrs": {
+        "tight": false
+      },
+      "content": [
+        {
+          "type": "list_item",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "This is a bullet"
+            }
+          ]
+        },
+        {
+          "type": "list_item",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Another bullet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "bullet_list",
+      "attrs": {
+        "tight": false
+      },
+      "content": [
+        {
+          "type": "list_item",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "This is another style of bullet"
+            }
+          ]
+        },
+        {
+          "type": "list_item",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Another bullet 2"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

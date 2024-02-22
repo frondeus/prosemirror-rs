@@ -41,6 +41,11 @@ impl<S: Schema> MarkSet<S> {
         }
     }
 
+    /// Remove a mark that needs `matches!`
+    pub fn remove_matching(&mut self, f: impl Fn(&S::Mark) -> bool) {
+        self.content.retain(|mark| !f(mark));
+    }
+
     /// Remove a mark from the set
     pub fn remove(&mut self, mark: &S::Mark) {
         match self

@@ -1,0 +1,53 @@
+```
+This is a simple footnote[^1]
+
+[^1]: My reference
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is a simple footnote"
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "footnote",
+              "attrs": {
+                "label": "1"
+              }
+            }
+          ],
+          "text": "1"
+        }
+      ]
+    },
+    {
+      "type": "footnote_definition",
+      "attrs": {
+        "label": "1"
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "My reference"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

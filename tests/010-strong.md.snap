@@ -1,0 +1,30 @@
+```
+This is **strongly typed text**
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "strong"
+            }
+          ],
+          "text": "strongly typed text"
+        }
+      ]
+    }
+  ]
+}
+
