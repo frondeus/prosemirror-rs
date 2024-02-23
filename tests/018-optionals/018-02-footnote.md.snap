@@ -31,7 +31,7 @@ This is a simple footnote[^1]
       ]
     },
     {
-      "type": "footnote_definition",
+      "type": "footnoteDefinition",
       "attrs": {
         "label": "1"
       },

@@ -1,9 +1,10 @@
 ```
-horizontal
-
+---
+foo: bar
 ---
 
-rule
+Foo bar
+
 ```
 
 [parsed]
@@ -11,25 +12,22 @@ rule
   "type": "doc",
   "content": [
     {
-      "type": "paragraph",
+      "type": "metadata",
       "content": [
         {
           "type": "text",
           "marks": [],
-          "text": "horizontal"
+          "text": "foo: bar"
         }
       ]
     },
     {
-      "type": "horizontal_rule"
-    },
-    {
       "type": "paragraph",
       "content": [
         {
           "type": "text",
           "marks": [],
-          "text": "rule"
+          "text": "Foo bar"
         }
       ]
     }

@@ -1,6 +1,9 @@
 ```
-This is  
-hard break
+horizontal
+
+---
+
+rule
 ```
 
 [parsed]
@@ -13,15 +16,20 @@ hard break
         {
           "type": "text",
           "marks": [],
-          "text": "This is"
-        },
-        {
-          "type": "hard_break"
-        },
+          "text": "horizontal"
+        }
+      ]
+    },
+    {
+      "type": "horizontalRule"
+    },
+    {
+      "type": "paragraph",
+      "content": [
         {
           "type": "text",
           "marks": [],
-          "text": "hard break"
+          "text": "rule"
         }
       ]
     }

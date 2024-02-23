@@ -1,0 +1,143 @@
+```
+| this | is | table |
+| --- | --- | --- |
+| this | is | cell |
+| this | also | a cell |
+
+This is not a table
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "table",
+      "attrs": {
+        "alignment": [
+          "None",
+          "None",
+          "None"
+        ]
+      },
+      "content": [
+        {
+          "type": "tableHead",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "this"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "is"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "table"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "this"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "is"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "cell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "this"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "also"
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "text",
+                  "marks": [],
+                  "text": "a cell"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is not a table"
+        }
+      ]
+    }
+  ]
+}
+

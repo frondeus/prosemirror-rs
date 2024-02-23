@@ -1,10 +1,13 @@
 use super::{
-    attrs::FootnoteAttrs, BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs,
-    MarkdownMark, MarkdownNode, OrderedListAttrs, MD,
+    attrs::{Alignment, FootnoteAttrs, TableAttrs, TaskListMarkerAttrs},
+    BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
+    MarkdownNode, OrderedListAttrs, MD,
 };
 use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Node, Text, TextNode};
 use displaydoc::Display;
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{
+    CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd, TextMergeStream,
+};
 use std::{convert::TryInto, num::TryFromIntError};
 use thiserror::Error;
 
@@ -13,8 +16,6 @@ use thiserror::Error;
 pub enum FromMarkdownError {
     /// Heading level too deep
     LevelMismatch(#[from] TryFromIntError),
-    /// Not supported: `{0}`
-    NotSupported(&'static str),
     /// The stack was empty
     StackEmpty,
     /// Event mismatch
@@ -35,20 +36,25 @@ pub enum Attrs {
     ListItem,
     Image(ImageAttrs),
     FootnoteDefinition(FootnoteAttrs),
+    Metadata,
+    Table(TableAttrs),
+    TableHead,
+    TableRow,
+    TableCell,
 }
 
 /// Creates a MarkdownNode::Doc from a text
 pub fn from_markdown(text: &str) -> Result<MarkdownNode, FromMarkdownError> {
     let mut options = Options::empty();
-    // options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_FOOTNOTES);
-    // options.insert(Options::ENABLE_STRIKETHROUGH);
-    // options.insert(Options::ENABLE_TASKLISTS);
-    // options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_TASKLISTS);
+    options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
     // options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
 
-    // options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+    options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
     // options.insert(Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS)
 
     let parser = Parser::new_ext(text, options);
@@ -92,7 +98,8 @@ impl MarkdownDeserializer {
 
     fn deserialize(&mut self, parser: Parser) -> Result<MarkdownNode, FromMarkdownError> {
         self.push_stack(Attrs::Doc);
-        for event in parser {
+        let iterator = TextMergeStream::new(parser);
+        for event in iterator {
             match event {
                 Event::Start(tag) => match tag {
                     Tag::Paragraph => {
@@ -154,21 +161,28 @@ impl MarkdownDeserializer {
                             }),
                         ));
                     }
-                    Tag::Table(_) => {
-                        // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("Table"));
-                    }
+                    Tag::Table(alignment) => self.stack.push((
+                        Vec::new(),
+                        Attrs::Table(TableAttrs {
+                            alignment: alignment
+                                .iter()
+                                .map(|a| match a {
+                                    pulldown_cmark::Alignment::None => Alignment::None,
+                                    pulldown_cmark::Alignment::Left => Alignment::Left,
+                                    pulldown_cmark::Alignment::Center => Alignment::Center,
+                                    pulldown_cmark::Alignment::Right => Alignment::Right,
+                                })
+                                .collect(),
+                        }),
+                    )),
                     Tag::TableHead => {
-                        // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("TableHead"));
+                        self.stack.push((Vec::new(), Attrs::TableHead));
                     }
                     Tag::TableRow => {
-                        // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("TableRow"));
+                        self.stack.push((Vec::new(), Attrs::TableRow));
                     }
                     Tag::TableCell => {
-                        // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("TableCell"));
+                        self.stack.push((Vec::new(), Attrs::TableCell));
                     }
                     Tag::Emphasis => {
                         self.mark_set.add(&MarkdownMark::Em);
@@ -177,15 +191,12 @@ impl MarkdownDeserializer {
                         self.mark_set.add(&MarkdownMark::Strong);
                     }
                     Tag::Strikethrough => {
-                        // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("Strikethrough"));
+                        self.mark_set.add(&MarkdownMark::Strikethrough);
                     }
-                    Tag::HtmlBlock => {
-                        // return Err(FromMarkdownError::NotSupported("HtmlBlock"));
-                    }
+                    Tag::HtmlBlock => {}
                     Tag::MetadataBlock(_) => {
                         // Requires opt-in feature
-                        return Err(FromMarkdownError::NotSupported("MetadataBlock"));
+                        self.stack.push((Vec::new(), Attrs::Metadata));
                     }
                     Tag::Link {
                         link_type: _,
@@ -313,20 +324,64 @@ impl MarkdownDeserializer {
                         }
                     }
                     TagEnd::Table => {
-                        return Err(FromMarkdownError::NotSupported("Table"));
+                        let (content, attrs) = self.pop_stack()?;
+                        if let Attrs::Table(attrs) = attrs {
+                            let cb = MarkdownNode::Table(AttrNode {
+                                attrs,
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag("Table", attrs));
+                        }
                     }
                     TagEnd::TableHead => {
-                        return Err(FromMarkdownError::NotSupported("TableHead"));
+                        let (content, attrs) = self.pop_stack()?;
+                        if let Attrs::TableHead = attrs {
+                            let cb = MarkdownNode::TableHead(Block {
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag("TableHead", attrs));
+                        }
                     }
                     TagEnd::TableRow => {
-                        return Err(FromMarkdownError::NotSupported("TableRow"));
+                        let (content, attrs) = self.pop_stack()?;
+                        if let Attrs::TableRow = attrs {
+                            let cb = MarkdownNode::TableRow(Block {
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag("TableRow", attrs));
+                        }
                     }
                     TagEnd::TableCell => {
-                        return Err(FromMarkdownError::NotSupported("TableCell"));
+                        let (content, attrs) = self.pop_stack()?;
+                        if let Attrs::TableCell = attrs {
+                            let cb = MarkdownNode::TableCell(Block {
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag("TableCell", attrs));
+                        }
                     }
                     TagEnd::HtmlBlock => {}
                     TagEnd::MetadataBlock(_) => {
-                        return Err(FromMarkdownError::NotSupported("MetadataBlock"));
+                        let (mut content, attrs) = self.pop_stack()?;
+                        if let Attrs::Metadata = attrs {
+                            if let Some(MarkdownNode::Text(t)) = content.last_mut() {
+                                t.text.remove_last_newline();
+                            }
+                            let cb = MarkdownNode::Metadata(Block {
+                                content: Fragment::from(content),
+                            });
+                            self.add_content(cb)?;
+                        } else {
+                            return Err(FromMarkdownError::MisplacedEndTag("Metadata", attrs));
+                        }
                     }
                     TagEnd::Emphasis => {
                         self.mark_set.remove(&MarkdownMark::Em);
@@ -335,7 +390,7 @@ impl MarkdownDeserializer {
                         self.mark_set.remove(&MarkdownMark::Strong);
                     }
                     TagEnd::Strikethrough => {
-                        return Err(FromMarkdownError::NotSupported("Strikethrough"));
+                        self.mark_set.remove(&MarkdownMark::Strikethrough);
                     }
                     TagEnd::Link => {
                         self.mark_set
@@ -411,9 +466,10 @@ impl MarkdownDeserializer {
                 Event::Rule => {
                     self.add_content(MarkdownNode::HorizontalRule)?;
                 }
-                Event::TaskListMarker(_) => {
-                    // This requires opt-in feature
-                    return Err(FromMarkdownError::NotSupported("TaskListMarker"));
+                Event::TaskListMarker(checked) => {
+                    self.add_content(MarkdownNode::TaskListMarker(Leaf {
+                        attrs: TaskListMarkerAttrs { checked },
+                    }))?;
                 }
             }
         }

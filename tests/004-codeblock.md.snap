@@ -18,7 +18,7 @@ This is a code with spaces in language
   "type": "doc",
   "content": [
     {
-      "type": "code_block",
+      "type": "codeBlock",
       "attrs": {
         "params": ""
       },
@@ -31,7 +31,7 @@ This is a code with spaces in language
       ]
     },
     {
-      "type": "code_block",
+      "type": "codeBlock",
       "attrs": {
         "params": "jsonnet"
       },
@@ -44,7 +44,7 @@ This is a code with spaces in language
       ]
     },
     {
-      "type": "code_block",
+      "type": "codeBlock",
       "attrs": {
         "params": "jsonnet { x: 2 }"
       },

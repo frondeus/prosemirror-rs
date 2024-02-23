@@ -1,0 +1,30 @@
+```
+This is  
+hard break
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is"
+        },
+        {
+          "type": "hardBreak"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": "hard break"
+        }
+      ]
+    }
+  ]
+}
+

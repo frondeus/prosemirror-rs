@@ -29,12 +29,12 @@ pub use to_markdown::{to_markdown, ToMarkdownError};
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
-use self::attrs::FootnoteAttrs;
+use self::attrs::{FootnoteAttrs, TableAttrs, TaskListMarkerAttrs};
 
 /// The node type for the markdown schema
 #[derive(Debug, Derivative, Deserialize, Serialize, PartialEq, Eq)]
 #[derivative(Clone(bound = ""))]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum MarkdownNode {
     /// The document root
     Doc(Block<MD>),
@@ -58,10 +58,24 @@ pub enum MarkdownNode {
     HorizontalRule,
     /// A hard break `<br>`
     HardBreak,
+    /// [ ] or [x]
+    TaskListMarker(Leaf<TaskListMarkerAttrs>),
     /// An image `<img>`
     Image(Leaf<ImageAttrs>),
     /// A footnote definition `[^1]: ...`
     FootnoteDefinition(AttrNode<MD, FootnoteAttrs>),
+    /// YAML style matadata blocks
+    Metadata(Block<MD>),
+    /// | markdown | table |
+    /// | --- | --- |
+    /// | table | table |
+    Table(AttrNode<MD, TableAttrs>),
+    /// Header of the table, with the names of the columns
+    TableHead(Block<MD>),
+    /// A row in a table, that is not a header
+    TableRow(Block<MD>),
+    /// A cell in a table, both header and normal cells
+    TableCell(Block<MD>),
 }
 
 impl From<TextNode<MD>> for MarkdownNode {
@@ -97,7 +111,11 @@ impl Node<MD> for MarkdownNode {
             Self::Text { .. } => false,
             Self::Image { .. } => false,
             Self::HardBreak => false,
+            Self::TaskListMarker(_) => false,
             Self::FootnoteDefinition(_) => true,
+            Self::Metadata { .. } => true,
+            Self::Table { .. } => true,
+            Self::TableCell(_) | Self::TableHead(_) | Self::TableRow(_) => true,
         }
     }
 
@@ -116,6 +134,12 @@ impl Node<MD> for MarkdownNode {
             Self::Image { .. } => MarkdownNodeType::Image,
             Self::HardBreak => MarkdownNodeType::HardBreak,
             Self::FootnoteDefinition(_) => MarkdownNodeType::FootnoteDefinition,
+            Self::TaskListMarker(_) => MarkdownNodeType::TaskListMarker,
+            Self::Metadata { .. } => MarkdownNodeType::Metadata,
+            Self::Table { .. } => MarkdownNodeType::Table,
+            Self::TableHead(_) => MarkdownNodeType::TableHead,
+            Self::TableRow(_) => MarkdownNodeType::TableRow,
+            Self::TableCell(_) => MarkdownNodeType::TableCell,
         }
     }
 
@@ -141,6 +165,12 @@ impl Node<MD> for MarkdownNode {
             Self::HardBreak => None,
             Self::Image { .. } => None,
             Self::FootnoteDefinition(AttrNode { content, .. }) => Some(content),
+            Self::TaskListMarker(_) => None,
+            Self::Metadata(Block { content }) => Some(content),
+            Self::Table(AttrNode { content, .. }) => Some(content),
+            Self::TableHead(Block { content }) => Some(content),
+            Self::TableRow(Block { content }) => Some(content),
+            Self::TableCell(Block { content }) => Some(content),
         }
     }
 
@@ -178,6 +208,12 @@ impl Node<MD> for MarkdownNode {
             Self::HardBreak => Self::HardBreak,
             Self::Image(img) => Self::Image(img.clone()),
             Self::FootnoteDefinition(node) => Self::FootnoteDefinition(node.copy(map)),
+            Self::TaskListMarker(marker) => Self::TaskListMarker(marker.clone()),
+            Self::Metadata(block) => Self::Metadata(block.copy(map)),
+            Self::Table(node) => Self::Table(node.copy(map)),
+            Self::TableHead(block) => Self::TableHead(block.copy(map)),
+            Self::TableRow(block) => Self::TableRow(block.copy(map)),
+            Self::TableCell(block) => Self::TableCell(block.copy(map)),
         }
     }
 }
@@ -210,6 +246,8 @@ pub enum MarkdownMark {
     },
     /// <foo>, </foo> or <foo /> tags
     HtmlTag,
+    /// ~strikethrough~
+    Strikethrough,
 }
 
 impl Mark<MD> for MarkdownMark {
@@ -221,6 +259,7 @@ impl Mark<MD> for MarkdownMark {
             Self::Link { .. } => MarkdownMarkType::Link,
             Self::Footnote { .. } => MarkdownMarkType::Footnote,
             Self::HtmlTag { .. } => MarkdownMarkType::HtmlTag,
+            Self::Strikethrough => MarkdownMarkType::Strikethrough,
         }
     }
 }
@@ -240,6 +279,8 @@ pub enum MarkdownMarkType {
     Footnote,
     /// <foo>, </foo> or <foo /> tags
     HtmlTag,
+    /// ~strikethrough~
+    Strikethrough,
 }
 
 impl MarkType for MarkdownMarkType {}

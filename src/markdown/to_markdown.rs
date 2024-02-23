@@ -1,4 +1,4 @@
-use super::{MarkdownMark, MarkdownNode, MD};
+use super::{attrs::Alignment, MarkdownMark, MarkdownNode, MD};
 use crate::model::{AttrNode, Block, Fragment, Leaf, Node};
 use displaydoc::Display;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, InlineStr, LinkType, Tag};
@@ -47,6 +47,7 @@ fn mark_tag(mark: &MarkdownMark) -> Tag {
     match mark {
         MarkdownMark::Strong => Tag::Strong,
         MarkdownMark::Em => Tag::Emphasis,
+        MarkdownMark::Strikethrough => Tag::Strikethrough,
         MarkdownMark::Code => unimplemented!("Should not be pushed on the mark stack"),
         MarkdownMark::Link { attrs } => Tag::Link {
             link_type: LinkType::Inline,
@@ -200,6 +201,13 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     // todo: inline marks
                     Some(Event::HardBreak)
                 }
+                MarkdownNode::TaskListMarker(Leaf { attrs }) => {
+                    Some(Event::TaskListMarker(attrs.checked))
+                }
+                MarkdownNode::Metadata(Block { content }) => {
+                    self.process_content(index, content, node);
+                    self.next()
+                }
                 MarkdownNode::Image(Leaf { attrs }) => {
                     self.process_attr_node(index, Fragment::EMPTY_REF, &(), node, |()| Tag::Image {
                         link_type: LinkType::Inline,
@@ -212,6 +220,31 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     .process_attr_node(index, content, attrs, node, |attrs| {
                         Tag::FootnoteDefinition(CowStr::Borrowed(attrs.label.as_str()))
                     }),
+                MarkdownNode::Table(AttrNode { attrs, content }) => {
+                    self.process_attr_node(index, content, attrs, node, |attrs| {
+                        Tag::Table(
+                            attrs
+                                .alignment
+                                .iter()
+                                .map(|a| match a {
+                                    Alignment::None => pulldown_cmark::Alignment::None,
+                                    Alignment::Left => pulldown_cmark::Alignment::Left,
+                                    Alignment::Right => pulldown_cmark::Alignment::Right,
+                                    Alignment::Center => pulldown_cmark::Alignment::Center,
+                                })
+                                .collect(),
+                        )
+                    })
+                }
+                MarkdownNode::TableHead(Block { content }) => {
+                    self.process_attr_node(index, content, &(), node, |_| Tag::TableHead)
+                }
+                MarkdownNode::TableRow(Block { content }) => {
+                    self.process_attr_node(index, content, &(), node, |_| Tag::TableRow)
+                }
+                MarkdownNode::TableCell(Block { content }) => {
+                    self.process_attr_node(index, content, &(), node, |_| Tag::TableCell)
+                }
             }
         } else {
             None

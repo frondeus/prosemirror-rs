@@ -60,3 +60,23 @@ pub struct FootnoteAttrs {
     /// The label of the footnote
     pub label: String,
 }
+
+/// The attributes for a task list marker [x] or [ ]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct TaskListMarkerAttrs {
+    /// Whether the task is checked [x] or not [ ]
+    pub checked: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct TableAttrs {
+    pub alignment: Vec<Alignment>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum Alignment {
+    None,
+    Left,
+    Center,
+    Right,
+}

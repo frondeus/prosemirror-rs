@@ -42,6 +42,18 @@ pub enum MarkdownNodeType {
     Image,
     /// Footnote definition
     FootnoteDefinition,
+    /// Task list marker [x] or [ ]
+    TaskListMarker,
+    /// YAML style metadata
+    Metadata,
+    /// A github style table
+    Table,
+    /// A table head
+    TableHead,
+    /// A table row
+    TableRow,
+    /// A table cell
+    TableCell,
 }
 
 impl MarkdownNodeType {
@@ -57,8 +69,14 @@ impl MarkdownNodeType {
 
             Self::Heading | Self::Paragraph => true, // textblock
             Self::FootnoteDefinition => true,
+            Self::Metadata => false,
+            Self::TableCell | Self::TableHead | Self::TableRow | Self::Table => true,
 
-            Self::Text | Self::HorizontalRule | Self::HardBreak | Self::Image => true, // inline
+            Self::Text
+            | Self::TaskListMarker
+            | Self::HorizontalRule
+            | Self::HardBreak
+            | Self::Image => true, // inline
         }
     }
 }
@@ -104,6 +122,12 @@ impl NodeType<MD> for MarkdownNodeType {
             Self::HardBreak => MarkdownContentMatch::Empty,
             Self::Image => MarkdownContentMatch::Empty,
             Self::FootnoteDefinition => MarkdownContentMatch::InlineStar,
+            Self::TaskListMarker => MarkdownContentMatch::Empty,
+            Self::Metadata => MarkdownContentMatch::TextStar,
+            Self::Table => MarkdownContentMatch::BlockPlus,
+            Self::TableHead => MarkdownContentMatch::BlockPlus,
+            Self::TableRow => MarkdownContentMatch::BlockPlus,
+            Self::TableCell => MarkdownContentMatch::InlineStar,
         }
     }
 

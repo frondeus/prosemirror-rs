@@ -1,7 +1,7 @@
 ```
-1. one
-2. two
-3. three
+* [ ] Unchecked
+* [x] Checked
+* [/] Partial
 ```
 
 [parsed]
@@ -9,9 +9,8 @@
   "type": "doc",
   "content": [
     {
-      "type": "orderedList",
+      "type": "bulletList",
       "attrs": {
-        "order": 1,
         "tight": false
       },
       "content": [
@@ -19,9 +18,31 @@
           "type": "listItem",
           "content": [
             {
+              "type": "taskListMarker",
+              "attrs": {
+                "checked": false
+              }
+            },
+            {
               "type": "text",
               "marks": [],
-              "text": "one"
+              "text": "Unchecked"
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "taskListMarker",
+              "attrs": {
+                "checked": true
+              }
+            },
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Checked"
             }
           ]
         },
@@ -31,17 +52,7 @@
             {
               "type": "text",
               "marks": [],
-              "text": "two"
-            }
-          ]
-        },
-        {
-          "type": "listItem",
-          "content": [
-            {
-              "type": "text",
-              "marks": [],
-              "text": "three"
+              "text": "[/] Partial"
             }
           ]
         }

@@ -17,7 +17,7 @@ derivative = "2.2.0"
 thiserror = "1.0"
 displaydoc = "0.2"
 derive-new = "0.6"
-pulldown-cmark = { version = "0.10", optional = true }
+pulldown-cmark = { version = "0.10", features = ["serde"], optional = true }
 pulldown-cmark-to-cmark = { version = "11.2", optional = true }
 
 [dependencies.serde]
