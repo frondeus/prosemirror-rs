@@ -34,3 +34,12 @@ Foo bar
   ]
 }
 
+[printed]
+~~~~~~~~~
+---
+foo: bar
+---
+
+Foo bar
+~~~~~~~~~
+

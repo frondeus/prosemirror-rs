@@ -87,3 +87,10 @@ This is <foo x="2">html code with attrs</foo> this is not
   ]
 }
 
+[printed]
+~~~~~~~~~
+This is <foo>html code</foo> this is not
+
+This is <foo x="2">html code with attrs</foo> this is not
+~~~~~~~~~
+

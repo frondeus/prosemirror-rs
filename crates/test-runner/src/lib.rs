@@ -3,6 +3,7 @@ use chrono::{DateTime, Local};
 use diff_utils::{Comparison, DisplayOptions, PatchOptions};
 use regex::Regex;
 use std::io::Write;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -70,7 +71,7 @@ struct Entry<'a> {
 pub fn test_snapshots(
     ext: &'static str,
     section_name: &'static str,
-    f: impl 'static + Fn(&str) -> String + Send,
+    f: impl UnwindSafe + RefUnwindSafe + 'static + Fn(&str) -> String + Send,
 ) -> Result<()> {
     const TIMEOUT: u32 = 60_000;
     use pulse::{Signal, TimeoutError};
@@ -92,7 +93,11 @@ pub fn test_snapshots(
     guard.join().unwrap()
 }
 
-fn test_snapshots_inner(ext: &str, section_name: &str, f: impl Fn(&str) -> String) -> Result<()> {
+fn test_snapshots_inner(
+    ext: &str,
+    section_name: &str,
+    f: impl UnwindSafe + RefUnwindSafe + Fn(&str) -> String,
+) -> Result<()> {
     let section_regex = Regex::new(r"^\s*\[([[:alpha:]\.-_]+)\]\s*$")?;
     let path = go_to_root()?;
     let mut successes = 0;
@@ -100,7 +105,6 @@ fn test_snapshots_inner(ext: &str, section_name: &str, f: impl Fn(&str) -> Strin
     let mut skipped = 0;
     for entry in glob::glob(&format!("{}/tests/**/*.{}.snap", path.display(), ext))? {
         let entry = entry?;
-        //dbg!(&entry);
         let entry_file = load_file(&entry)?;
         let (input, snaps) = get_source(&entry_file)?;
         let mut section = None;
@@ -137,8 +141,13 @@ fn test_snapshots_inner(ext: &str, section_name: &str, f: impl Fn(&str) -> Strin
                 Some(from) => &snaps[from..to],
                 None => &snaps[to..to],
             };
-            let actual = format!("[{}]\n{}\n\n{}", section_name, f(input), last_line);
-            match assert_section(e, actual) {
+            let f = &f;
+            let result = std::panic::catch_unwind(move || {
+                format!("[{}]\n{}\n\n{}", section_name, f(input), last_line)
+            })
+            .map_err(|e| anyhow!("Panic: {e:?}"))
+            .and_then(move |actual| assert_section(e, actual));
+            match result {
                 Ok(_) => {
                     successes += 1;
                     eprint!(".");

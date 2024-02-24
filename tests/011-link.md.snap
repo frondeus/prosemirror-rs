@@ -1,5 +1,5 @@
 ```
-This is [a link](./to_a_content.md) here it ends
+This is [a link](./to_a_content.md "with title") here it ends
 
 This is <http:://google.com> autolink here
 
@@ -26,7 +26,7 @@ This is <john@example.com> email here
               "type": "link",
               "attrs": {
                 "href": "./to_a_content.md",
-                "title": ""
+                "title": "with title"
               }
             }
           ],
@@ -97,4 +97,13 @@ This is <john@example.com> email here
     }
   ]
 }
+
+[printed]
+~~~~~~~~~
+This is [a link](./to_a_content.md "with title") here it ends
+
+This is [http:://google.com](http:://google.com) autolink here
+
+This is [john@example.com](john@example.com) email here
+~~~~~~~~~
 

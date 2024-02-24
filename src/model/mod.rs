@@ -30,18 +30,6 @@ mod tests {
     use std::ops::Deref;
 
     #[test]
-    fn test_null_string() {
-        assert_eq!(
-            serde_json::from_str::<ImageAttrs>(r#"{"src": "", "alt": null}"#).unwrap(),
-            ImageAttrs {
-                src: String::new(),
-                title: String::new(),
-                alt: String::new()
-            }
-        );
-    }
-
-    #[test]
     fn test_deserialize_text() {
         assert_eq!(
             serde_json::from_str::<MarkdownNode>(r#"{"type": "text", "text": "Foo"}"#).unwrap(),

@@ -3,7 +3,7 @@ use super::{
     BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
     MarkdownNode, OrderedListAttrs, MD,
 };
-use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Node, Text, TextNode};
+use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Text, TextNode};
 use displaydoc::Display;
 use pulldown_cmark::{
     CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd, TextMergeStream,
@@ -219,7 +219,6 @@ impl MarkdownDeserializer {
                     } => {
                         self.push_stack(Attrs::Image(ImageAttrs {
                             src: dest_url.to_string(),
-                            alt: String::new(),
                             title: title.to_string(),
                         }));
                     }
@@ -398,14 +397,11 @@ impl MarkdownDeserializer {
                     }
                     TagEnd::Image { .. } => {
                         let (content, attrs) = self.pop_stack()?;
-                        if let Attrs::Image(mut attrs) = attrs {
-                            let alt: String = content
-                                .into_iter()
-                                .map(|node| node.text_content())
-                                .collect();
-
-                            attrs.alt = alt;
-                            let cb = MarkdownNode::Image(Leaf { attrs });
+                        if let Attrs::Image(attrs) = attrs {
+                            let cb = MarkdownNode::Image(AttrNode {
+                                attrs,
+                                content: content.into(),
+                            });
                             self.add_content(cb)?;
                         } else {
                             return Err(FromMarkdownError::MisplacedEndTag("Image", attrs));

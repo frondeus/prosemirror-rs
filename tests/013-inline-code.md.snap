@@ -1,5 +1,7 @@
 ```
 This is `inline code` this is not
+
+This is ``inline code with escaped backtick ` as one big code`` this is not
 ```
 
 [parsed]
@@ -29,7 +31,38 @@ This is `inline code` this is not
           "text": " this is not"
         }
       ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "This is "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "inline code with escaped backtick ` as one big code"
+        },
+        {
+          "type": "text",
+          "marks": [],
+          "text": " this is not"
+        }
+      ]
     }
   ]
 }
+
+[printed]
+~~~~~~~~~
+This is `inline code` this is not
+
+This is ``inline code with escaped backtick ` as one big code`` this is not
+~~~~~~~~~
 

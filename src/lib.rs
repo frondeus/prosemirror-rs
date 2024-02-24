@@ -8,7 +8,7 @@
 #[macro_use]
 extern crate derive_new;
 
-pub(crate) mod de;
+pub mod de;
 pub mod markdown;
 pub mod model;
 pub mod transform;

@@ -20,3 +20,8 @@ Test "foo" bar
   ]
 }
 
+[printed]
+~~~~~~~~~
+Test “foo” bar
+~~~~~~~~~
+

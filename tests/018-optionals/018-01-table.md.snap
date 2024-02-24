@@ -141,3 +141,14 @@ This is not a table
   ]
 }
 
+[printed]
+~~~~~~~~~
+| this | is   | table  |
+| ---- | ---- | ------ |
+| this | is   | cell   |
+| this | also | a cell |
+
+
+This is not a table
+~~~~~~~~~
+

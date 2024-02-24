@@ -10,6 +10,8 @@ mod schema;
 #[cfg(feature = "cmark")]
 mod from_markdown;
 #[cfg(feature = "cmark")]
+mod print_markdown;
+#[cfg(feature = "cmark")]
 mod to_markdown;
 
 use crate::model::{
@@ -61,7 +63,8 @@ pub enum MarkdownNode {
     /// [ ] or [x]
     TaskListMarker(Leaf<TaskListMarkerAttrs>),
     /// An image `<img>`
-    Image(Leaf<ImageAttrs>),
+    /// The alt text is a content of type `Text`.
+    Image(AttrNode<MD, ImageAttrs>),
     /// A footnote definition `[^1]: ...`
     FootnoteDefinition(AttrNode<MD, FootnoteAttrs>),
     /// YAML style matadata blocks
@@ -260,6 +263,21 @@ impl Mark<MD> for MarkdownMark {
             Self::Footnote { .. } => MarkdownMarkType::Footnote,
             Self::HtmlTag { .. } => MarkdownMarkType::HtmlTag,
             Self::Strikethrough => MarkdownMarkType::Strikethrough,
+        }
+    }
+}
+impl MarkdownMark {
+    /// Is this mark represented by Tag<'a> and TagEnd in pulldown cmark
+    pub fn is_represented_by_tag(&self) -> bool {
+        match self {
+            MarkdownMark::Code => false,
+            MarkdownMark::Footnote { .. } => false,
+            MarkdownMark::HtmlTag => false,
+
+            MarkdownMark::Strong
+            | MarkdownMark::Em
+            | MarkdownMark::Link { .. }
+            | MarkdownMark::Strikethrough => true,
         }
     }
 }

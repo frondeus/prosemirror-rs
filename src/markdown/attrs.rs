@@ -32,13 +32,11 @@ pub struct OrderedListAttrs {
 }
 
 /// Attributes for an image
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+/// Alt text is stored as a content of type `Text`
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub struct ImageAttrs {
     /// Source URL
     pub src: String,
-    #[serde(default, deserialize_with = "de::deserialize_or_default")]
-    /// Alternative Text (Accessibility)
-    pub alt: String,
     /// Title (Tooltip)
     #[serde(default, deserialize_with = "de::deserialize_or_default")]
     pub title: String,

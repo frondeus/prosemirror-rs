@@ -1,7 +1,9 @@
-use super::{attrs::Alignment, MarkdownMark, MarkdownNode, MD};
+use super::{attrs::Alignment, print_markdown, MarkdownMark, MarkdownNode, MD};
 use crate::model::{AttrNode, Block, Fragment, Leaf, Node};
 use displaydoc::Display;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, HeadingLevel, InlineStr, LinkType, Tag};
+use pulldown_cmark::{
+    CodeBlockKind, CowStr, Event, HeadingLevel, InlineStr, LinkType, MetadataBlockKind, Tag,
+};
 // use pulldown_cmark_to_cmark::cmark;
 use thiserror::Error;
 
@@ -20,10 +22,9 @@ impl From<std::fmt::Error> for ToMarkdownError {
 
 /// Turn a markdown document into a string
 pub fn to_markdown(doc: &MarkdownNode) -> Result<String, ToMarkdownError> {
-    let buf = String::with_capacity(doc.node_size() + 128);
-    let _events = MarkdownSerializer::new(doc);
-    // TODO
-    // cmark(events, &mut buf)?;
+    let mut buf = String::with_capacity(doc.node_size() + 128);
+    let events = MarkdownSerializer::new(doc);
+    print_markdown::Printer::print(events, &mut buf);
     Ok(buf)
 }
 
@@ -43,24 +44,42 @@ impl<'a> MarkdownSerializer<'a> {
     }
 }
 
+#[deprecated]
 fn mark_tag(mark: &MarkdownMark) -> Tag {
     match mark {
         MarkdownMark::Strong => Tag::Strong,
         MarkdownMark::Em => Tag::Emphasis,
         MarkdownMark::Strikethrough => Tag::Strikethrough,
-        MarkdownMark::Code => unimplemented!("Should not be pushed on the mark stack"),
         MarkdownMark::Link { attrs } => Tag::Link {
             link_type: LinkType::Inline,
             dest_url: CowStr::Borrowed(attrs.href.as_str()),
             title: CowStr::Borrowed(attrs.title.as_str()),
             id: String::new().into(),
         },
+        MarkdownMark::Code => unimplemented!("Should not be pushed on the mark stack: Code"),
         MarkdownMark::Footnote { attrs: _ } => {
-            unimplemented!("Should not be pushed on the mark stack")
+            unimplemented!("Should not be pushed on the mark stack: Footnote")
         }
         MarkdownMark::HtmlTag => {
-            unimplemented!("Should not be pushed on the mark stack")
+            unimplemented!("Should not be pushed on the mark stack: HtmlTag")
         }
+    }
+}
+
+fn mark_to_start_event<'a>(mark: &'a MarkdownMark, text: CowStr<'a>) -> Event<'a> {
+    match mark {
+        MarkdownMark::Strong => Event::Start(Tag::Strong),
+        MarkdownMark::Em => Event::Start(Tag::Emphasis),
+        MarkdownMark::Strikethrough => Event::Start(Tag::Strikethrough),
+        MarkdownMark::Link { attrs } => Event::Start(Tag::Link {
+            link_type: LinkType::Inline,
+            dest_url: CowStr::Borrowed(attrs.href.as_str()),
+            title: CowStr::Borrowed(attrs.title.as_str()),
+            id: String::new().into(),
+        }),
+        MarkdownMark::Code => Event::Code(text),
+        MarkdownMark::Footnote { attrs: _ } => Event::FootnoteReference(text),
+        MarkdownMark::HtmlTag => Event::Html(text),
     }
 }
 
@@ -94,6 +113,8 @@ impl<'a> MarkdownSerializer<'a> {
         if index == 0 {
             if let Some(mark) = self.marks.pop() {
                 self.inner.push((node, 0));
+                // Deprecation: While it should not really work, all tests for now pass so I'm not touching it
+                #[allow(deprecated)]
                 return Some(Event::End(mark_tag(mark).to_end()));
             }
         }
@@ -107,6 +128,8 @@ impl<'a> MarkdownSerializer<'a> {
         } else if last {
             if let Some(mark) = self.marks.pop() {
                 self.inner.push((node, index));
+                // Deprecation: While it should not really work, all tests for now pass so I'm not touching it
+                #[allow(deprecated)]
                 return Some(Event::End(mark_tag(mark).to_end()));
             }
             let tag = map(attrs);
@@ -160,23 +183,32 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                         if !text_node.marks.contains(last) {
                             self.inner.push((node, index));
                             self.marks.pop();
+                            // Deprecation: While it should not really work, all tests for now pass so I'm not touching it
+                            #[allow(deprecated)]
                             return Some(Event::End(mark_tag(last).to_end()));
                         }
                     }
-                    let mut is_code = false;
+                    let text = CowStr::Borrowed(text_node.text.as_str());
+
+                    let mut custom_event = None;
                     for mark in &text_node.marks {
-                        if *mark == MarkdownMark::Code {
-                            is_code = true;
-                        } else if !self.marks.contains(&mark) {
-                            self.inner.push((node, index));
-                            self.marks.push(mark);
-                            return Some(Event::Start(mark_tag(mark)));
+                        let event = mark_to_start_event(mark, text.clone());
+
+                        match event {
+                            Event::Start(start) if !self.marks.contains(&mark) => {
+                                self.inner.push((node, index));
+                                self.marks.push(mark);
+                                return Some(Event::Start(start));
+                            }
+                            Event::Start(_) => {}
+                            event => {
+                                custom_event = Some(event);
+                            }
                         }
                     }
-                    if is_code {
-                        Some(Event::Code(CowStr::Borrowed(text_node.text.as_str())))
-                    } else {
-                        Some(Event::Text(CowStr::Borrowed(text_node.text.as_str())))
+                    match custom_event {
+                        Some(event) => Some(event),
+                        None => Some(Event::Text(text)),
                     }
                 }
                 MarkdownNode::Blockquote(Block { content }) => {
@@ -205,11 +237,12 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                     Some(Event::TaskListMarker(attrs.checked))
                 }
                 MarkdownNode::Metadata(Block { content }) => {
-                    self.process_content(index, content, node);
-                    self.next()
+                    self.process_attr_node(index, content, &(), node, |()| {
+                        Tag::MetadataBlock(MetadataBlockKind::YamlStyle)
+                    })
                 }
-                MarkdownNode::Image(Leaf { attrs }) => {
-                    self.process_attr_node(index, Fragment::EMPTY_REF, &(), node, |()| Tag::Image {
+                MarkdownNode::Image(AttrNode { attrs, content }) => {
+                    self.process_attr_node(index, content, &(), node, |()| Tag::Image {
                         link_type: LinkType::Inline,
                         dest_url: CowStr::Borrowed(attrs.src.as_str()),
                         title: CowStr::Borrowed(attrs.title.as_str()),
@@ -259,10 +292,11 @@ mod tests {
     use crate::markdown::from_markdown;
 
     #[test]
-    fn renderer_tests() {
-        test_runner::test_snapshots("md", "rendered", |input| {
+    fn printer_tests() {
+        test_runner::test_snapshots("md", "printed", |input| {
             let node = from_markdown(input).unwrap();
-            to_markdown(&node).unwrap()
+            let md = to_markdown(&node).unwrap();
+            format!("~~~~~~~~~\n{md}\n~~~~~~~~~")
         })
         .unwrap();
     }

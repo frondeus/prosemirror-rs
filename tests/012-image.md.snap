@@ -18,9 +18,15 @@ This is ![img](./photo.png "With a title") and this is not
           "type": "image",
           "attrs": {
             "src": "./photo.png",
-            "alt": "img",
             "title": "With a title"
-          }
+          },
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "img"
+            }
+          ]
         },
         {
           "type": "text",
@@ -31,4 +37,9 @@ This is ![img](./photo.png "With a title") and this is not
     }
   ]
 }
+
+[printed]
+~~~~~~~~~
+This is ![img](./photo.png "With a title") and this is not
+~~~~~~~~~
 
