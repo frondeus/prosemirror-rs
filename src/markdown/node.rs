@@ -3,8 +3,8 @@ use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    BulletListAttrs, CodeBlockAttrs, FootnoteAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs,
-    MarkdownNodeType, OrderedListAttrs, TableAttrs, TaskListMarkerAttrs, MD,
+    CodeBlockAttrs, FootnoteAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs, MarkdownNodeType,
+    OrderedListAttrs, TableAttrs, TaskListMarkerAttrs, MD,
 };
 
 /// The node type for the markdown schema
@@ -25,7 +25,7 @@ pub enum MarkdownNode {
     /// A paragraph
     Paragraph(Block<MD>),
     /// A bullet list
-    BulletList(AttrNode<MD, BulletListAttrs>),
+    BulletList(Block<MD>),
     /// An ordered list
     OrderedList(AttrNode<MD, OrderedListAttrs>),
     /// A list item
@@ -140,7 +140,7 @@ impl Node<MD> for MarkdownNode {
             Self::Text { .. } => None,
             Self::Blockquote(Block { content }) => Some(content),
             Self::Paragraph(Block { content }) => Some(content),
-            Self::BulletList(AttrNode { content, .. }) => Some(content),
+            Self::BulletList(Block { content }) => Some(content),
             Self::OrderedList(AttrNode { content, .. }) => Some(content),
             Self::ListItem(Block { content }) => Some(content),
             Self::HorizontalRule => None,

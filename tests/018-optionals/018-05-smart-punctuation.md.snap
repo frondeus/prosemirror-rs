@@ -13,7 +13,7 @@ Test "foo" bar
         {
           "type": "text",
           "marks": [],
-          "text": "Test “foo” bar"
+          "text": "Test \"foo\" bar"
         }
       ]
     }
@@ -22,6 +22,6 @@ Test "foo" bar
 
 [printed]
 ~~~~~~~~~
-Test “foo” bar
+Test "foo" bar
 ~~~~~~~~~
 

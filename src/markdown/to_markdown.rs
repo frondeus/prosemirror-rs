@@ -212,7 +212,7 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                 }
                 MarkdownNode::CodeBlock(AttrNode { attrs, content }) => {
                     self.process_attr_node(index, content, attrs, node, |attrs| {
-                        Tag::CodeBlock(CodeBlockKind::Fenced(CowStr::Borrowed(&attrs.params)))
+                        Tag::CodeBlock(CodeBlockKind::Fenced(CowStr::Borrowed(&attrs.lang)))
                     })
                 }
                 MarkdownNode::Text(text_node) => {
@@ -254,8 +254,8 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                 MarkdownNode::Paragraph(Block { content }) => {
                     self.process_attr_node(index, content, &(), node, |()| Tag::Paragraph)
                 }
-                MarkdownNode::BulletList(AttrNode { attrs, content }) => {
-                    self.process_attr_node(index, content, attrs, node, |_| Tag::List(None))
+                MarkdownNode::BulletList(Block { content }) => {
+                    self.process_attr_node(index, content, &(), node, |_| Tag::List(None))
                 }
                 MarkdownNode::OrderedList(AttrNode { attrs, content }) => {
                     self.process_attr_node(index, content, attrs, node, |_| {

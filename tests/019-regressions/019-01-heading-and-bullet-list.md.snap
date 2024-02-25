@@ -1,0 +1,46 @@
+```
+# Foo
+* This is a bullet
+```
+
+[parsed]
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 1
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [],
+          "text": "Foo"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "This is a bullet"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+[printed]
+~~~~~~~~~
+# Foo
+- This is a bullet
+~~~~~~~~~
+

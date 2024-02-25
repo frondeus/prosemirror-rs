@@ -10,9 +10,6 @@
   "content": [
     {
       "type": "bulletList",
-      "attrs": {
-        "tight": false
-      },
       "content": [
         {
           "type": "listItem",

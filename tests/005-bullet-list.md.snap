@@ -12,9 +12,6 @@
   "content": [
     {
       "type": "bulletList",
-      "attrs": {
-        "tight": false
-      },
       "content": [
         {
           "type": "listItem",
@@ -40,9 +37,6 @@
     },
     {
       "type": "bulletList",
-      "attrs": {
-        "tight": false
-      },
       "content": [
         {
           "type": "listItem",

@@ -33,7 +33,7 @@ This is alternative fenced codeblock
     {
       "type": "codeBlock",
       "attrs": {
-        "params": ""
+        "lang": ""
       },
       "content": [
         {
@@ -46,7 +46,7 @@ This is alternative fenced codeblock
     {
       "type": "codeBlock",
       "attrs": {
-        "params": "jsonnet"
+        "lang": "jsonnet"
       },
       "content": [
         {
@@ -59,7 +59,7 @@ This is alternative fenced codeblock
     {
       "type": "codeBlock",
       "attrs": {
-        "params": "jsonnet { x: 2 }"
+        "lang": "jsonnet { x: 2 }"
       },
       "content": [
         {
@@ -72,7 +72,7 @@ This is alternative fenced codeblock
     {
       "type": "codeBlock",
       "attrs": {
-        "params": "markdown"
+        "lang": "markdown"
       },
       "content": [
         {
@@ -85,7 +85,7 @@ This is alternative fenced codeblock
     {
       "type": "codeBlock",
       "attrs": {
-        "params": ""
+        "lang": ""
       },
       "content": [
         {

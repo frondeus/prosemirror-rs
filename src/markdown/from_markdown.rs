@@ -1,7 +1,7 @@
 use super::{
     attrs::{Alignment, FootnoteAttrs, TableAttrs, TaskListMarkerAttrs},
-    BulletListAttrs, CodeBlockAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
-    MarkdownNode, OrderedListAttrs, MD,
+    CodeBlockAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark, MarkdownNode,
+    OrderedListAttrs, MD,
 };
 use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Text, TextNode};
 use displaydoc::Display;
@@ -18,7 +18,7 @@ pub enum FromMarkdownError {
     LevelMismatch(#[from] TryFromIntError),
     /// The stack was empty
     StackEmpty,
-    /// Event mismatch
+    /// Event mismatch {0} vs {1:?}
     MisplacedEndTag(&'static str, Attrs),
     /// No children allowed in {0:?}
     NoChildrenAllowed(&'static str),
@@ -43,7 +43,7 @@ pub enum Attrs {
     Blockquote,
     CodeBlock(CodeBlockAttrs),
     OrderedList(OrderedListAttrs),
-    BulletList(BulletListAttrs),
+    BulletList,
     ListItem,
     Image(ImageAttrs),
     FootnoteDefinition(FootnoteAttrs),
@@ -63,7 +63,7 @@ pub fn from_markdown(text: &str) -> Result<MarkdownNode, FromMarkdownError> {
     options.insert(Options::ENABLE_FOOTNOTES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
-    options.insert(Options::ENABLE_SMART_PUNCTUATION);
+    // options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
     // options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
 
@@ -186,13 +186,13 @@ impl MarkdownDeserializer {
                         self.stack.push((Vec::new(), Attrs::Blockquote));
                     }
                     Tag::CodeBlock(kind) => {
-                        let params = if let CodeBlockKind::Fenced(params) = kind {
-                            params.to_string()
+                        let lang = if let CodeBlockKind::Fenced(lang) = kind {
+                            lang.to_string()
                         } else {
                             String::new()
                         };
                         self.stack
-                            .push((Vec::new(), Attrs::CodeBlock(CodeBlockAttrs { params })));
+                            .push((Vec::new(), Attrs::CodeBlock(CodeBlockAttrs { lang })));
                     }
                     Tag::List(ord) => {
                         if let Some(order) = ord {
@@ -204,10 +204,7 @@ impl MarkdownDeserializer {
                                 }),
                             ))
                         } else {
-                            self.stack.push((
-                                Vec::new(),
-                                Attrs::BulletList(BulletListAttrs { tight: false }),
-                            ));
+                            self.stack.push((Vec::new(), Attrs::BulletList));
                         }
                     }
                     Tag::Item => {
@@ -336,9 +333,8 @@ impl MarkdownDeserializer {
                     TagEnd::List(_) => {
                         let (content, attrs) = self.pop_stack()?;
                         match attrs {
-                            Attrs::BulletList(attrs) => {
-                                let l = MarkdownNode::BulletList(AttrNode {
-                                    attrs,
+                            Attrs::BulletList => {
+                                let l = MarkdownNode::BulletList(Block {
                                     content: Fragment::from(content),
                                 });
                                 self.add_content(l)?;

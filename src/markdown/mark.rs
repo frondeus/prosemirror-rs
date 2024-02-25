@@ -8,8 +8,10 @@ use super::{FootnoteAttrs, LinkAttrs, MarkdownMarkType, MD};
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum MarkdownMark {
     /// bold
+    #[serde(rename = "bold", alias = "strong")]
     Strong,
     /// italics
+    #[serde(rename = "italic", alias = "em")]
     Em,
     /// monospace
     Code,
@@ -24,6 +26,7 @@ pub enum MarkdownMark {
         attrs: FootnoteAttrs,
     },
     /// ~strikethrough~
+    #[serde(rename = "strike", alias = "strikethrough")]
     Strikethrough,
 }
 

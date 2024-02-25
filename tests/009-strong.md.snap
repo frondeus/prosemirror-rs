@@ -18,7 +18,7 @@ This is **strongly typed text** this is not
           "type": "text",
           "marks": [
             {
-              "type": "strong"
+              "type": "bold"
             }
           ],
           "text": "strongly typed text"

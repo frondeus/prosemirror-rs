@@ -11,16 +11,18 @@ pub struct HeadingAttrs {
 /// Attributes for a code block
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct CodeBlockAttrs {
-    /// ???
-    pub params: String,
+    /// Language specified after three backticks.
+    /// Only used when code block is fenced.
+    #[serde(default)]
+    pub lang: String,
 }
 
-/// Attributes for a bullet list
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct BulletListAttrs {
-    /// ???
-    pub tight: bool,
-}
+// /// Attributes for a bullet list
+// #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+// pub struct BulletListAttrs {
+//     /// ???
+//     pub tight: bool,
+// }
 
 /// Attributes for an ordered list
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

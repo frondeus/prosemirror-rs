@@ -18,7 +18,7 @@ Let this is _emphasis text_ this is not
           "type": "text",
           "marks": [
             {
-              "type": "em"
+              "type": "italic"
             }
           ],
           "text": "emphasis text"
