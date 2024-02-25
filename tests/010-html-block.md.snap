@@ -4,6 +4,12 @@
 Bar
 
 </foo>
+
+<bar with_attr="foo" id="x">
+
+Baz
+
+</bar>
 ```
 
 [parsed]
@@ -11,32 +17,44 @@ Bar
   "type": "doc",
   "content": [
     {
-      "type": "text",
-      "marks": [
-        {
-          "type": "htmlTag"
-        }
-      ],
-      "text": "<foo>\n"
-    },
-    {
-      "type": "paragraph",
+      "type": "html",
+      "attrs": {
+        "tag": "foo",
+        "inline": false,
+        "attrs": ""
+      },
       "content": [
         {
-          "type": "text",
-          "marks": [],
-          "text": "Bar"
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Bar"
+            }
+          ]
         }
       ]
     },
     {
-      "type": "text",
-      "marks": [
+      "type": "html",
+      "attrs": {
+        "tag": "bar",
+        "inline": false,
+        "attrs": "with_attr=\"foo\" id=\"x\""
+      },
+      "content": [
         {
-          "type": "htmlTag"
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "marks": [],
+              "text": "Baz"
+            }
+          ]
         }
-      ],
-      "text": "</foo>"
+      ]
     }
   ]
 }
@@ -44,8 +62,15 @@ Bar
 [printed]
 ~~~~~~~~~
 <foo>
+
 Bar
 
 </foo>
+
+<bar with_attr="foo" id="x">
+
+Baz
+
+</bar>
 ~~~~~~~~~
 

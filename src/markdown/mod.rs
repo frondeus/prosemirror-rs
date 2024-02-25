@@ -17,7 +17,7 @@ mod print_markdown;
 mod to_markdown;
 
 pub use attrs::{
-    BulletListAttrs, CodeBlockAttrs, FootnoteAttrs, HeadingAttrs, ImageAttrs, LinkAttrs,
+    BulletListAttrs, CodeBlockAttrs, FootnoteAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs, LinkAttrs,
     OrderedListAttrs, TableAttrs, TaskListMarkerAttrs,
 };
 pub use content::MarkdownContentMatch;

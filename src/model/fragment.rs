@@ -43,6 +43,11 @@ impl<S: Schema> Fragment<S> {
         self.size
     }
 
+    /// Is the fragment empty?
+    pub fn is_empty(&self) -> bool {
+        self.size() == 0
+    }
+
     /// Get a slice to all child nodes
     pub fn children(&self) -> &[S::Node] {
         &self.inner[..]

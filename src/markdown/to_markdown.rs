@@ -60,9 +60,6 @@ fn mark_tag(mark: &MarkdownMark) -> Tag {
         MarkdownMark::Footnote { attrs: _ } => {
             unimplemented!("Should not be pushed on the mark stack: Footnote")
         }
-        MarkdownMark::HtmlTag => {
-            unimplemented!("Should not be pushed on the mark stack: HtmlTag")
-        }
     }
 }
 
@@ -79,7 +76,6 @@ fn mark_to_start_event<'a>(mark: &'a MarkdownMark, text: CowStr<'a>) -> Event<'a
         }),
         MarkdownMark::Code => Event::Code(text),
         MarkdownMark::Footnote { attrs: _ } => Event::FootnoteReference(text),
-        MarkdownMark::HtmlTag => Event::Html(text),
     }
 }
 
@@ -96,6 +92,47 @@ impl<'a> MarkdownSerializer<'a> {
             false
         } else {
             true
+        }
+    }
+
+    fn process_html_node<A, F, G>(
+        &mut self,
+        index: usize,
+        content: &'a Fragment<MD>,
+        attrs: &'a A,
+        node: &'a MarkdownNode,
+        map: F,
+        map_end: G,
+    ) -> Option<Event<'a>>
+    where
+        F: FnOnce(&'a A) -> Event<'a>,
+        G: FnOnce(&'a A) -> Option<Event<'a>>,
+    {
+        if index == 0 {
+            if let Some(mark) = self.marks.pop() {
+                self.inner.push((node, 0));
+                // Deprecation: While it should not really work, all tests for now pass so I'm not touching it
+                #[allow(deprecated)]
+                return Some(Event::End(mark_tag(mark).to_end()));
+            }
+        }
+        let last = self.process_content(index, content, node);
+        if index == 0 {
+            if last {
+                // close the tag next
+                self.inner.push((node, index + 1));
+            }
+            Some(map(attrs))
+        } else if last {
+            if let Some(mark) = self.marks.pop() {
+                self.inner.push((node, index));
+                // Deprecation: While it should not really work, all tests for now pass so I'm not touching it
+                #[allow(deprecated)]
+                return Some(Event::End(mark_tag(mark).to_end()));
+            }
+            map_end(attrs)
+        } else {
+            self.next()
         }
     }
 
@@ -278,6 +315,38 @@ impl<'a> Iterator for MarkdownSerializer<'a> {
                 MarkdownNode::TableCell(Block { content }) => {
                     self.process_attr_node(index, content, &(), node, |_| Tag::TableCell)
                 }
+                MarkdownNode::HTML(AttrNode { attrs, content }) => self.process_html_node(
+                    index,
+                    content,
+                    attrs,
+                    node,
+                    |attrs| {
+                        let mut html = attrs.tag.clone();
+                        if !attrs.attrs.is_empty() {
+                            html += &format!(" {}", attrs.attrs);
+                        }
+                        if content.is_empty() {
+                            html = format!("<{html} />");
+                        } else {
+                            html = format!("<{html}>");
+                        }
+                        match attrs.inline {
+                            true => Event::InlineHtml(html.into()),
+                            false => Event::Html(html.into()),
+                        }
+                    },
+                    |attrs| {
+                        if content.is_empty() {
+                            None // Self enclosed in the previous closure
+                        } else {
+                            let html = format!("</{}>", attrs.tag);
+                            Some(match attrs.inline {
+                                true => Event::InlineHtml(html.into()),
+                                false => Event::Html(html.into()),
+                            })
+                        }
+                    },
+                ),
             }
         } else {
             None

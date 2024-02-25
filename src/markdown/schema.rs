@@ -74,6 +74,9 @@ pub enum MarkdownNodeType {
     TableRow,
     /// A table cell
     TableCell,
+    /// HTML node
+    /// - bool is inline
+    HTML(bool),
 }
 
 impl MarkdownNodeType {
@@ -97,6 +100,8 @@ impl MarkdownNodeType {
             | Self::HorizontalRule
             | Self::HardBreak
             | Self::Image => true, // inline
+
+            Self::HTML(_) => true,
         }
     }
 }
@@ -110,26 +115,34 @@ impl NodeType<MD> for MarkdownNodeType {
         self._allow_marks()
     }
 
-    fn is_inline(self) -> bool {
-        matches!(self, Self::Text | Self::Image | Self::HardBreak)
-    }
-
     fn is_block(self) -> bool {
-        matches!(
-            self,
-            Self::Paragraph
-                | Self::Blockquote
-                | Self::Heading
-                | Self::HorizontalRule
-                | Self::CodeBlock
-                | Self::OrderedList
-                | Self::BulletList
-        )
+        match self {
+            MarkdownNodeType::Doc => true,
+            MarkdownNodeType::Heading => false,
+            MarkdownNodeType::CodeBlock => true,
+            MarkdownNodeType::Text => false,
+            MarkdownNodeType::Blockquote => true,
+            MarkdownNodeType::Paragraph => true,
+            MarkdownNodeType::BulletList => true,
+            MarkdownNodeType::OrderedList => true,
+            MarkdownNodeType::ListItem => false,
+            MarkdownNodeType::HorizontalRule => true,
+            MarkdownNodeType::HardBreak => false,
+            MarkdownNodeType::Image => false,
+            MarkdownNodeType::FootnoteDefinition => true,
+            MarkdownNodeType::TaskListMarker => false,
+            MarkdownNodeType::Metadata => true,
+            MarkdownNodeType::Table => true,
+            MarkdownNodeType::TableHead => false,
+            MarkdownNodeType::TableRow => false,
+            MarkdownNodeType::TableCell => false,
+            MarkdownNodeType::HTML(is_inline) => !is_inline,
+        }
     }
 
     fn content_match(self) -> MarkdownContentMatch {
         match self {
-            Self::Doc => MarkdownContentMatch::BlockPlus,
+            Self::Doc => MarkdownContentMatch::Star,
             Self::Heading => MarkdownContentMatch::OrTextImageStar,
             Self::CodeBlock => MarkdownContentMatch::TextStar,
             Self::Text => MarkdownContentMatch::Empty,
@@ -148,6 +161,8 @@ impl NodeType<MD> for MarkdownNodeType {
             Self::TableHead => MarkdownContentMatch::BlockPlus,
             Self::TableRow => MarkdownContentMatch::BlockPlus,
             Self::TableCell => MarkdownContentMatch::InlineStar,
+            Self::HTML(true) => MarkdownContentMatch::InlineStar,
+            Self::HTML(false) => MarkdownContentMatch::BlockStar,
         }
     }
 
@@ -158,20 +173,25 @@ impl NodeType<MD> for MarkdownNodeType {
     /// Returns true if the given fragment is valid content for this node type with the given
     /// attributes.
     fn valid_content(self, fragment: &Fragment<MD>) -> bool {
+        // eprintln!("{self:?} Is valid content? {fragment:?}");
         let result = self.content_match().match_fragment(fragment);
 
         if let Some(m) = result {
             if m.valid_end() {
                 for child in fragment.children() {
                     if child.marks().filter(|m| !self.allow_marks(m)).is_some() {
+                        // eprintln!("{self:?} FALSE - mark");
                         return false;
                     }
                 }
 
+                // eprintln!("{self:?} TRUE");
                 return true;
             }
+            // eprintln!("{self:?} not valid end?");
         }
 
+        // eprintln!("{self:?} FALSE - content match");
         false
     }
 }

@@ -23,8 +23,6 @@ pub enum MarkdownMark {
         /// The attributes
         attrs: FootnoteAttrs,
     },
-    /// <foo>, </foo> or <foo /> tags
-    HtmlTag,
     /// ~strikethrough~
     Strikethrough,
 }
@@ -37,7 +35,6 @@ impl Mark<MD> for MarkdownMark {
             Self::Code => MarkdownMarkType::Code,
             Self::Link { .. } => MarkdownMarkType::Link,
             Self::Footnote { .. } => MarkdownMarkType::Footnote,
-            Self::HtmlTag { .. } => MarkdownMarkType::HtmlTag,
             Self::Strikethrough => MarkdownMarkType::Strikethrough,
         }
     }
@@ -48,7 +45,6 @@ impl MarkdownMark {
         match self {
             MarkdownMark::Code => false,
             MarkdownMark::Footnote { .. } => false,
-            MarkdownMark::HtmlTag => false,
 
             MarkdownMark::Strong
             | MarkdownMark::Em

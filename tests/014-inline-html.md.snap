@@ -17,27 +17,19 @@ This is <foo x="2">html code with attrs</foo> this is not
           "text": "This is "
         },
         {
-          "type": "text",
-          "marks": [
+          "type": "html",
+          "attrs": {
+            "tag": "foo",
+            "inline": true,
+            "attrs": ""
+          },
+          "content": [
             {
-              "type": "htmlTag"
+              "type": "text",
+              "marks": [],
+              "text": "html code"
             }
-          ],
-          "text": "<foo>"
-        },
-        {
-          "type": "text",
-          "marks": [],
-          "text": "html code"
-        },
-        {
-          "type": "text",
-          "marks": [
-            {
-              "type": "htmlTag"
-            }
-          ],
-          "text": "</foo>"
+          ]
         },
         {
           "type": "text",
@@ -55,27 +47,19 @@ This is <foo x="2">html code with attrs</foo> this is not
           "text": "This is "
         },
         {
-          "type": "text",
-          "marks": [
+          "type": "html",
+          "attrs": {
+            "tag": "foo",
+            "inline": true,
+            "attrs": "x=\"2\""
+          },
+          "content": [
             {
-              "type": "htmlTag"
+              "type": "text",
+              "marks": [],
+              "text": "html code with attrs"
             }
-          ],
-          "text": "<foo x=\"2\">"
-        },
-        {
-          "type": "text",
-          "marks": [],
-          "text": "html code with attrs"
-        },
-        {
-          "type": "text",
-          "marks": [
-            {
-              "type": "htmlTag"
-            }
-          ],
-          "text": "</foo>"
+          ]
         },
         {
           "type": "text",

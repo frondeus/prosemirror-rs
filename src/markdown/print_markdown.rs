@@ -191,6 +191,7 @@ impl<'a> Printer<'a> {
             }
             Event::Html(h) => {
                 self.print_block(&h);
+                self.tag_is_block();
             }
             Event::InlineHtml(h) => self.print_str(&h),
             Event::FootnoteReference(reference) => self.print_string(format!("[^{reference}]")),

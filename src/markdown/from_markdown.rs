@@ -1,6 +1,6 @@
 use super::{
     attrs::{Alignment, FootnoteAttrs, TableAttrs, TaskListMarkerAttrs},
-    BulletListAttrs, CodeBlockAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
+    BulletListAttrs, CodeBlockAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs, LinkAttrs, MarkdownMark,
     MarkdownNode, OrderedListAttrs, MD,
 };
 use crate::model::{AttrNode, Block, Fragment, Leaf, MarkSet, Text, TextNode};
@@ -24,6 +24,17 @@ pub enum FromMarkdownError {
     NoChildrenAllowed(&'static str),
 }
 
+/// What is the kind of the tag encountered by the pulldown cmark
+#[derive(Debug, Clone, Copy)]
+enum HtmlTagKind {
+    /// <foo>
+    Opening,
+    /// </foo>
+    Closing,
+    /// <foo />
+    Both,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Attrs {
     Doc,
@@ -41,6 +52,8 @@ pub enum Attrs {
     TableHead,
     TableRow,
     TableCell,
+    #[allow(clippy::upper_case_acronyms)] // HTML is a valid acronym
+    HTML(HTMLAttrs),
 }
 
 /// Creates a MarkdownNode::Doc from a text
@@ -93,6 +106,53 @@ impl MarkdownDeserializer {
     fn add_content(&mut self, node: MarkdownNode) -> Result<(), FromMarkdownError> {
         let last = self.stack.last_mut().ok_or(FromMarkdownError::StackEmpty)?;
         last.0.push(node);
+        Ok(())
+    }
+
+    fn deserialize_html(&mut self, html: &str, inline: bool) -> Result<(), FromMarkdownError> {
+        let kind = if html.starts_with("</") {
+            HtmlTagKind::Closing
+        } else if html.ends_with("/>") {
+            HtmlTagKind::Both
+        } else {
+            HtmlTagKind::Opening
+        };
+
+        if let HtmlTagKind::Opening | HtmlTagKind::Both = kind {
+            let (mut tag, attrs) = html
+                .split_once([' ', '\n', '\t', '\r'])
+                .unwrap_or((html, ""));
+
+            tag = &tag[1..]; // Without <
+
+            let attrs = match attrs.is_empty() {
+                true => {
+                    tag = tag.trim_matches('>').trim_matches('/');
+                    ""
+                }
+                false => attrs.trim_matches('>').trim_matches('/'),
+            };
+
+            self.push_stack(Attrs::HTML(HTMLAttrs {
+                tag: tag.to_string(),
+                inline,
+                attrs: attrs.to_string(),
+            }))
+        }
+
+        if let HtmlTagKind::Closing | HtmlTagKind::Both = kind {
+            let (content, attrs) = self.pop_stack()?;
+            if let Attrs::HTML(attrs) = attrs {
+                let cb = MarkdownNode::HTML(AttrNode {
+                    attrs,
+                    content: Fragment::from(content),
+                });
+                self.add_content(cb)?;
+            } else {
+                return Err(FromMarkdownError::MisplacedEndTag("HTML", attrs));
+            }
+        }
+
         Ok(())
     }
 
@@ -423,20 +483,12 @@ impl MarkdownDeserializer {
                     }))?;
                 }
                 Event::InlineHtml(html) => {
-                    let mut marks = self.mark_set.clone();
-                    marks.add(&MarkdownMark::HtmlTag);
-                    self.add_content(MarkdownNode::Text(TextNode {
-                        text: Text::from(html.to_string()),
-                        marks,
-                    }))?;
+                    let html = html.trim();
+                    self.deserialize_html(html, true)?;
                 }
                 Event::Html(html) => {
-                    let mut marks = self.mark_set.clone();
-                    marks.add(&MarkdownMark::HtmlTag);
-                    self.add_content(MarkdownNode::Text(TextNode {
-                        text: Text::from(html.to_string()),
-                        marks,
-                    }))?;
+                    let html = html.trim();
+                    self.deserialize_html(html, false)?;
                 }
                 Event::FootnoteReference(label) => {
                     let mut marks = self.mark_set.clone();

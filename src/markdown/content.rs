@@ -6,6 +6,8 @@ use std::ops::RangeBounds;
 /// The content match type for markdown
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum MarkdownContentMatch {
+    /// `*`
+    Star,
     /// `inline*`
     InlineStar,
     /// `block+`
@@ -29,6 +31,7 @@ pub enum MarkdownContentMatch {
 impl ContentMatch<MD> for MarkdownContentMatch {
     fn match_type(self, r#type: MarkdownNodeType) -> Option<Self> {
         match self {
+            Self::Star => Some(Self::Star),
             Self::InlineStar => then_some(r#type.is_inline(), Self::InlineStar),
             Self::BlockPlus | Self::BlockStar => then_some(r#type.is_block(), Self::BlockStar),
             Self::OrTextImageStar => then_some(
@@ -58,11 +61,13 @@ impl ContentMatch<MD> for MarkdownContentMatch {
 
         let mut test = self;
         for child in &fragment.children()[start..end] {
-            match test.match_type(child.r#type()) {
+            let child_type = child.r#type();
+            match test.match_type(child_type) {
                 Some(next) => {
                     test = next;
                 }
                 None => {
+                    // eprintln!("Test failed at {child_type:?} for {fragment:?}");
                     return None;
                 }
             }
@@ -71,21 +76,25 @@ impl ContentMatch<MD> for MarkdownContentMatch {
     }
 
     fn valid_end(self) -> bool {
-        matches!(
-            self,
-            Self::InlineStar
-                | Self::BlockStar
-                | Self::OrTextImageStar
-                | Self::TextStar
-                | Self::ListItemStar
-                | Self::Empty
-        )
+        match self {
+            MarkdownContentMatch::Star => true,
+            MarkdownContentMatch::InlineStar => true,
+            MarkdownContentMatch::BlockPlus => false,
+            MarkdownContentMatch::BlockStar => true,
+            MarkdownContentMatch::OrTextImageStar => true,
+            MarkdownContentMatch::TextStar => true,
+            MarkdownContentMatch::ListItemPlus => false,
+            MarkdownContentMatch::ListItemStar => true,
+            MarkdownContentMatch::ParagraphBlockStar => true,
+            MarkdownContentMatch::Empty => true,
+        }
     }
 }
 
 impl MarkdownContentMatch {
     pub(crate) fn compatible(self, other: Self) -> bool {
         match self {
+            Self::Star => true,
             Self::InlineStar => matches!(
                 other,
                 Self::InlineStar | Self::OrTextImageStar | Self::TextStar

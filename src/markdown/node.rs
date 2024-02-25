@@ -3,8 +3,8 @@ use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    BulletListAttrs, CodeBlockAttrs, FootnoteAttrs, HeadingAttrs, ImageAttrs, MarkdownNodeType,
-    OrderedListAttrs, TableAttrs, TaskListMarkerAttrs, MD,
+    BulletListAttrs, CodeBlockAttrs, FootnoteAttrs, HTMLAttrs, HeadingAttrs, ImageAttrs,
+    MarkdownNodeType, OrderedListAttrs, TableAttrs, TaskListMarkerAttrs, MD,
 };
 
 /// The node type for the markdown schema
@@ -53,6 +53,9 @@ pub enum MarkdownNode {
     TableRow(Block<MD>),
     /// A cell in a table, both header and normal cells
     TableCell(Block<MD>),
+    /// HTML node
+    #[serde(rename = "html")]
+    HTML(AttrNode<MD, HTMLAttrs>),
 }
 
 impl From<TextNode<MD>> for MarkdownNode {
@@ -93,6 +96,7 @@ impl Node<MD> for MarkdownNode {
             Self::Metadata { .. } => true,
             Self::Table { .. } => true,
             Self::TableCell(_) | Self::TableHead(_) | Self::TableRow(_) => true,
+            Self::HTML(attrs) => attrs.attrs.inline,
         }
     }
 
@@ -117,6 +121,7 @@ impl Node<MD> for MarkdownNode {
             Self::TableHead(_) => MarkdownNodeType::TableHead,
             Self::TableRow(_) => MarkdownNodeType::TableRow,
             Self::TableCell(_) => MarkdownNodeType::TableCell,
+            Self::HTML(attrs) => MarkdownNodeType::HTML(attrs.attrs.inline),
         }
     }
 
@@ -148,6 +153,7 @@ impl Node<MD> for MarkdownNode {
             Self::TableHead(Block { content }) => Some(content),
             Self::TableRow(Block { content }) => Some(content),
             Self::TableCell(Block { content }) => Some(content),
+            Self::HTML(AttrNode { content, .. }) => Some(content),
         }
     }
 
@@ -191,6 +197,7 @@ impl Node<MD> for MarkdownNode {
             Self::TableHead(block) => Self::TableHead(block.copy(map)),
             Self::TableRow(block) => Self::TableRow(block.copy(map)),
             Self::TableCell(block) => Self::TableCell(block.copy(map)),
+            Self::HTML(node) => Self::HTML(node.copy(map)),
         }
     }
 }

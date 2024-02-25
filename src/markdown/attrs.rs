@@ -81,3 +81,15 @@ pub enum Alignment {
     Center,
     Right,
 }
+
+/// The attributes for an HTML tag
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct HTMLAttrs {
+    /// Html tag name
+    pub tag: String,
+    /// Is the html inline or a block
+    pub inline: bool,
+    /// We do not parse attributes of the html tag
+    /// Instead, these are stored as is, ex.: "class=\"foo\" id=\"bar\""
+    pub attrs: String,
+}
