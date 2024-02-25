@@ -66,11 +66,14 @@ pub struct TaskListMarkerAttrs {
     pub checked: bool,
 }
 
+/// The attributes for a table
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct TableAttrs {
+    /// The alignment of the columns
     pub alignment: Vec<Alignment>,
 }
 
+/// 1:1 copy of the `Alignment` from `pullown-cmark`. We only added `Eq` implementation.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Alignment {
     None,

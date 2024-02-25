@@ -1,6 +1,5 @@
-use super::MarkdownMarkType;
 use crate::markdown::{MarkdownContentMatch, MarkdownMark, MarkdownNode};
-use crate::model::{ContentMatch, Fragment, MarkSet, Node, NodeType, Schema};
+use crate::model::{ContentMatch, Fragment, MarkSet, MarkType, Node, NodeType, Schema};
 
 /// The markdown schema type
 pub struct MD;
@@ -12,6 +11,27 @@ impl Schema for MD {
     type NodeType = MarkdownNodeType;
     type ContentMatch = MarkdownContentMatch;
 }
+
+/// The type of a markdown mark.
+#[derive(Debug, Hash, Eq, Copy, Clone, PartialEq, PartialOrd, Ord)]
+pub enum MarkdownMarkType {
+    /// bold
+    Strong,
+    /// italics
+    Em,
+    /// monospace
+    Code,
+    /// hyper-linked
+    Link,
+    /// [^1] style footnotes
+    Footnote,
+    /// <foo>, </foo> or <foo /> tags
+    HtmlTag,
+    /// ~strikethrough~
+    Strikethrough,
+}
+
+impl MarkType for MarkdownMarkType {}
 
 /// The node-spec type for the markdown schema
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
